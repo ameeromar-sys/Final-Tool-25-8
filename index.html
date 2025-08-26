@@ -2465,10 +2465,10 @@
                 data: {
                     'None': { grades: ['None'], prompt: 'Translate to Arabic accurately. Preserve HTML/LaTeX and special placeholders (e.g., __LOCK_0__, __GLOSSARY_0__). If a text contains the separator \\n<SEP>\\n, translate each segment separately and preserve the separator exactly.' },
                     'Mathematics': {
-                        grades: ['Grades 1–3', 'Grades 4–7', 'Grades 8–12'], prompts: {
+                        grades: ['Grades 1–3', 'Grades 4–8', 'Grades 9–12'], prompts: {
                             'Grades 1–3': 'Task: Translate English Math questions for grades 1-3 into accurate, age-appropriate Arabic.\nRules:\n1) Use official MoE phrasing.\n2) Use Arabic-Indic numerals.\n3) Write equations in LaTeX. Transliterate variables to Arabic (س، ص، ع).\n4) Fractions as \\dfrac{البسط}{المقام}.\n5) If text contains \\n<SEP>\\n, translate each part and preserve separator.',
-                            'Grades 4–7': 'Task: Translate English Math questions for grades 4-7 into accurate Arabic.\nRules:\n1) Use official MoE phrasing.\n2) Use English numerals.\n3) Translate units to Arabic abbreviations (cm→سم).\n4) Fractions as \\dfrac{numerator}{denominator}.\n5) If text contains \\n<SEP>\\n, translate each part and preserve separator.',
-                            'Grades 8–12': 'Task: Translate English Math questions for grades 8-12 into accurate Arabic.\nRules:\n1) Use official MoE phrasing.\n2) Use Arabic-Indic numerals; transliterate variables to Arabic.\n3) Fractions as \\dfrac{البسط}{المقام}.\n4) If text contains \\n<SEP>\\n, translate each part and preserve separator.'
+                            'Grades 4–8': 'Task: Translate English Math questions for grades 4-8 into accurate Arabic.\nRules:\n1) Use official MoE phrasing.\n2) Use English numerals.\n3) Translate units to Arabic abbreviations (cm→سم).\n4) Fractions as \\dfrac{numerator}{denominator}.\n5) If text contains \\n<SEP>\\n, translate each part and preserve separator.',
+                            'Grades 9–12': 'Task: Translate English Math questions for grades 9-12 into accurate Arabic.\nRules:\n1) Use official MoE phrasing.\n2) Use Arabic-Indic numerals; transliterate variables to Arabic.\n3) Fractions as \\dfrac{البسط}{المقام}.\n4) If text contains \\n<SEP>\\n, translate each part and preserve separator.'
                         }
                     },
                     'Physics': {
@@ -2542,6 +2542,7 @@
                         '- **CRITICAL RULE: If a text segment contains no translatable prose (e.g., it is only a table of numbers, a chemical formula, or a URL), you MUST return the original text segment completely unchanged.**',
                         '- If present, keep placeholders __LOCK_n__ and __GLOSSARY_n__ unchanged.',
                         `- ${digitsRule}`,
+                        '- Do NOT transliterate Arabic letters or symbols into LaTeX format like \\alt{\\alef}. The word for "students" is "طالب".', // Add the new line here
                         `- If text contains the separator ${TranslatorApp.constants.CONTEXT_SEPARATOR}, translate each segment and preserve the separator exactly.`,
                         '- Keep the order of choices unchanged.',
                         '- Output in Arabic (MSA), formal tone.'
