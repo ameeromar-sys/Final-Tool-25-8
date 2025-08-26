@@ -2522,14 +2522,14 @@
                 },
                 onSubjectChange() { const s = TranslatorApp.dom.subjectSelect.value; this.populateGrades(s); this.updatePromptPreview(); },
                 onGradeChange() { this.updatePromptPreview(); },
-                updatePromptPreview() { TranslatorApp.dom.promptPreview.value = this.buildSystemPrompt(); },
+                updatePromptPreview() { TranslatorApp.dom.promptPreview.value = this.; },
                 getCurrentPrompt() {
                     const subject = TranslatorApp.dom.subjectSelect.value;
                     const grade = TranslatorApp.dom.gradeSelect.value;
                     if (subject === 'None' || !this.data[subject]) return this.data['None'].prompt;
                     return this.data[subject].prompts?.[grade] || Object.values(this.data[subject].prompts)[0] || '';
                 },
-                buildSystemPrompt() {
+                 {
                     const base = this.getCurrentPrompt();
                     const subject = TranslatorApp.dom.subjectSelect.value;
                     const grade = TranslatorApp.dom.gradeSelect.value;
@@ -3311,6 +3311,9 @@
                             try { return decodeURIComponent(escape(atob(b64))); } catch { return ''; }
                         });
 
+                        let postProcessedHtml = restored;
+                        postProcessedHtml = postProcessedHtml.replace(/\\alt\{\\alef\}\\prime/g, 'طالب'); // Add the new line here
+
                         // 3) Apply smart text direction processing
                         const enhancedContent = TranslatorApp.utils.textDirection.enhancePreviewContent(restored);
 
@@ -4006,6 +4009,10 @@
                 }
             },
             export: {
+                cleanTranslatedText: (text) => {
+                    if (typeof text !== 'string') return text;
+                    return text.replace(/\\alt\{\\alef\}\\prime/g, 'طالب');
+                },
                 exportAs(format) {
                     return (format === 'csv') ? this.toCsv() : this.toJson();
                 },
@@ -4080,8 +4087,8 @@
                             return doc.body.textContent || "";
                         };
 
-                        const cleanStatement = stripHtml(finalData.statement);
-                        const cleanStem = finalData.parts?.[0]?.stem ? stripHtml(finalData.parts[0].stem) : '';
+                        const cleanStatement = stripHtml(this.cleanTranslatedText(finalData.statement));
+                        const cleanStem = finalData.parts?.[0]?.stem ? stripHtml(this.cleanTranslatedText(finalData.parts[0].stem)) : '';
                         let description = (cleanStatement + ' ' + cleanStem).trim();
                         finalData.metadata.description = description;
 
