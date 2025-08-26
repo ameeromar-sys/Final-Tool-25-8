@@ -4064,7 +4064,10 @@
                         finalData.metadata.country = 'eg';
                         // Add the source_id from the selected translator, if available
                         if (sourceId) {
-                          finalData.metadata.source_id = sourceId;
+                          finalData.metadata.source_id = {
+                            "value": parseInt(sourceId), // Convert to integer
+                            "page_number": null
+                          };
                         } else {
                           // If no translator is selected, set a default value or leave it as null
                           finalData.metadata.source_id = null;
