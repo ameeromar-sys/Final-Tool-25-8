@@ -667,11 +667,11 @@
                       <label for="translatorSelect" class="block mb-2 font-semibold">اسم المترجم:</label>
                       <select id="translatorSelect" class="w-full p-3 rounded-lg focus:ring-2 transition" style="border-color: var(--input-border);">
                         <option value="">اختر مترجماً</option>
-                        <option value="Aya Abulmagd">آية عبدالمجد</option>
-                        <option value="Salma Hafez">سلمى حافظ</option>
-                        <option value="Hend El Husseiny">هند الحسيني</option>
-                        <option value="Salma Zaki">سلمى زكي</option>
-                        <option value="Esraa Shahien">إسراء شاهين</option>
+                        <option value="Aya Abulmagd">Aya Abulmagd</option>
+                        <option value="Salma Hafez">Salma Hafez</option>
+                        <option value="Hend El Husseiny">Hend El Husseiny</option>
+                        <option value="Salma Zaki">Salma Zaki</option>
+                        <option value="Esraa Shahien">Esraa Shahien</option>
                       </select>
                     </div>
 
@@ -1483,6 +1483,11 @@
                     document.addEventListener('keydown', (e) => {
                         try {
                             if (e.ctrlKey || e.metaKey) {
+                                const isEditable = e.target.closest('[contenteditable="true"]');
+                                const isMathField = e.target.closest('math-field');
+                                if (isEditable || isMathField) {
+                                    return; // Exit and let the browser's native undo handle it.
+                                }
                                 switch (e.key.toLowerCase()) {
                                     case 's':
                                         e.preventDefault();
