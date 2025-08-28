@@ -3719,7 +3719,15 @@
                                 if (originalPart.answer) {
                                     if (typeof originalPart.answer === 'string') {
                                         html += renderField('الإجابة (Answer)', originalPart.answer, part.answer, `parts.${partIndex}.answer`);
-                                    } else if (typeof originalPart.answer === 'object' && originalPart.answer.hasOwnProperty('value')) {
+                                    } 
+                                    // New condition to check if the answer is an array of strings
+                                    else if (Array.isArray(originalPart.answer)) {
+                                    // Join the array elements to form a single HTML string for editing
+                                        const originalValue = originalPart.answer.join('');
+                                        const translatedValue = translatedPart.answer?.join('') || originalPart.answer.join('');
+                                        html += renderField('الإجابة (Answer)', originalValue, translatedValue, `parts.${partIndex}.answer`);
+                                    }
+                                    else if (typeof originalPart.answer === 'object' && originalPart.answer.hasOwnProperty('value')) {
                                         // Allow editing if the translated part kept the same shape (object with value)
                                         html += renderField('الإجابة (Answer)', originalPart.answer.value, (part.answer && part.answer.value) || originalPart.answer.value, `parts.${partIndex}.answer.value`);
                                     } else {
@@ -3762,8 +3770,16 @@
                         for (let i = 0; i < keys.length - 1; i++) {
                             current = current[keys[i]];
                         }
-                        current[keys[keys.length - 1]] = value;
+                        const lastKey = keys[keys.length - 1];
 
+                        // Check if the target is the 'answer' field of an array type
+                        if (lastKey === 'answer' && Array.isArray(TranslatorApp.state.originalJsonData[fileIndex].data.parts[keys[1]].answer)) {
+                            // If it was originally an array, store it as an array
+                            current[lastKey] = [value];
+                        } else {
+                            // Otherwise, store it as a string
+                            current[lastKey] = value;
+                        }
                         TranslatorApp.history.push(TranslatorApp.state.translatedJsonData);
                         TranslatorApp.state.hasUnsavedChanges = true;
                     } catch (error) {
