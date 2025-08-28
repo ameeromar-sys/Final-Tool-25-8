@@ -3767,13 +3767,16 @@
                     try {
                         const keys = path.split('.');
                         let current = TranslatorApp.state.translatedJsonData[fileIndex].data;
+                        let original = TranslatorApp.state.originalJsonData[fileIndex].data;
                         for (let i = 0; i < keys.length - 1; i++) {
                             current = current[keys[i]];
+                            original = original[keys[i]];
                         }
                         const lastKey = keys[keys.length - 1];
 
+                        const originalValueAtPath = original[lastKey];
                         // Check if the target is the 'answer' field of an array type
-                        if (lastKey === 'answer' && Array.isArray(TranslatorApp.state.originalJsonData[fileIndex].data.parts[keys[1]].answer)) {
+                        if (Array.isArray(originalValueAtPath)) {
                             // If it was originally an array, store it as an array
                             current[lastKey] = [value];
                         } else {
