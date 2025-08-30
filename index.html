@@ -2891,14 +2891,21 @@
                         // معالجة أجزاء السؤال
                         file.data.parts?.forEach((part, partIndex) => {
                             processField(part.stem, { fileIndex, partIndex, key: 'stem' });
-                            if (typeof part.answer === 'string') {
-                                processField(part.answer, { fileIndex, partIndex, key: 'answer' });
+                            if (part.answer) {
+                                if (typeof part.answer === 'string') {
+                                    processField(part.answer, { fileIndex, partIndex, key: 'answer' });
+                                } else if (Array.isArray(part.answer)) {
+                                    const answerText = part.answer.join(' ');
+                                    processField(answerText, { fileIndex, partIndex, key: 'answer' });
+                                }
                             }
                             part.choices?.forEach((choice, choiceIndex) => {
                                 processField(choice.html_content, { fileIndex, partIndex, choiceIndex, key: 'choice' });
                             });
+                            part.gap_text_keys?.forEach((keyItem, keyIndex) => {
+                                processField(keyItem.value, { fileIndex, partIndex, key: `gap_text_keys.${keyIndex}.value` });
+                            });
                         });
-                    });
 
                     const uniqueJobs = [];
                     const seen = new Set();
@@ -3732,19 +3739,23 @@
 
                                 // Correctly handle the 'answer' field whether it's a string or an array
                                 if (originalPart.answer) {
-                                    if (typeof originalPart.answer === 'string') {
-                                        html += renderField('الإجابة (Answer)', originalPart.answer, part.answer, `parts.${partIndex}.answer`);
-                                    } else if (Array.isArray(originalPart.answer)) {
-                                    // Join the array elements to form a single HTML string for editing
-                                       html += renderField('الإجابة (Answer)', originalPart.answer, part.answer, `parts.${partIndex}.answer`);
+                                    let originalValueToRender = originalPart.answer;
+                                    let translatedValueToRender = part.answer;
+
+                                    if (Array.isArray(originalPart.answer)) {
+                                        originalValueToRender = originalPart.answer.join('');
+                                        translatedValueToRender = Array.isArray(part.answer) ? part.answer.join('') : part.answer;
                                     } else if (typeof originalPart.answer === 'object' && originalPart.answer.hasOwnProperty('value')) {
-                                        // Allow editing if the translated part kept the same shape (object with value)
-                                       html += renderField('الإجابة (Answer)', originalPart.answer.value, (part.answer && part.answer.value) || originalPart.answer.value, `parts.${partIndex}.answer.value`);
+                                        originalValueToRender = originalPart.answer.value;
+                                        translatedValueToRender = part.answer?.value;
+                                    }
+                                    if (originalValueToRender) {
+                                        html += renderField('الإجابة (Answer)', originalValueToRender, translatedValueToRender, `parts.${partIndex}.answer`);
                                     } else {
                                         html += this.renderReadOnlyField('الإجابة (Answer - غير قابلة للترجمة)', JSON.stringify(originalPart.answer));
                                     }
                                 }
-
+                                
                                 part.choices?.forEach((choice, choiceIndex) => {
                                     const originalChoice = originalPart.choices[choiceIndex];
                                     html += renderField(`خيار ${choiceIndex + 1}`, originalChoice.html_content, choice.html_content, `parts.${partIndex}.choices.${choiceIndex}.html_content`);
@@ -3785,7 +3796,9 @@
                         const lastKey = keys[keys.length - 1];
 
                         const originalValueAtPath = original[lastKey];
+                        // Check if the target is the 'answer' field of an array type
                         if (Array.isArray(originalValueAtPath)) {
+                            // If it was originally an array, store it as an array
                             current[lastKey] = [value];
                         } else {
                             // Otherwise, store it as a string
