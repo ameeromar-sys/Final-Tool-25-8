@@ -2891,18 +2891,24 @@
                         // معالجة أجزاء السؤال
                         file.data.parts?.forEach((part, partIndex) => {
                             processField(part.stem, { fileIndex, partIndex, key: 'stem' });
-                            if (part.answer) {
+                            // Correctly handle all types of 'answer' fields for processing
+                            // (This block is within the file.data.parts?.forEach loop)
+                            const originalPart = TranslatorApp.state.originalJsonData[fileIndex].data.parts[partIndex];
+                            if (originalPart.answer) {
                                 let contentToProcess = null;
                                 let pathKey = 'answer'; // Default path key for simple string or array
-                                
-                                if (typeof part.answer === 'string') {
-                                    contentToProcess = part.answer;
-                                } else if (Array.isArray(part.answer)) {
-                                    contentToProcess = part.answer.join('');
-                                } else if (typeof part.answer === 'object' && part.answer.hasOwnProperty('value')) {
-                                    contentToProcess = part.answer.value;
+    
+                                if (typeof originalPart.answer === 'string') {
+                                    contentToProcess = originalPart.answer;
+                                } else if (Array.isArray(originalPart.answer)) {
+                                    // Handle array of strings by joining them
+                                    contentToProcess = originalPart.answer.join('');
+                                } else if (typeof originalPart.answer === 'object' && originalPart.answer.hasOwnProperty('value')) {
+                                    // Handle object with a 'value' property
+                                    contentToProcess = originalPart.answer.value;
                                     pathKey = 'answer.value'; // Adjust the path key for objects
                                 }
+    
                                 if (contentToProcess) {
                                     processField(contentToProcess, { fileIndex, partIndex, key: pathKey });
                                 }
