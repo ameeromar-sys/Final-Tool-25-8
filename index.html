@@ -2892,11 +2892,19 @@
                         file.data.parts?.forEach((part, partIndex) => {
                             processField(part.stem, { fileIndex, partIndex, key: 'stem' });
                             if (part.answer) {
+                                let contentToProcess = null;
+                                let pathKey = 'answer'; // Default path key for simple string or array
+                                
                                 if (typeof part.answer === 'string') {
-                                    processField(part.answer, { fileIndex, partIndex, key: 'answer' });
+                                    contentToProcess = part.answer;
                                 } else if (Array.isArray(part.answer)) {
-                                    const answerText = part.answer.join(' ');
-                                    processField(answerText, { fileIndex, partIndex, key: 'answer' });
+                                    contentToProcess = part.answer.join('');
+                                } else if (typeof part.answer === 'object' && part.answer.hasOwnProperty('value')) {
+                                    contentToProcess = part.answer.value;
+                                    pathKey = 'answer.value'; // Adjust the path key for objects
+                                }
+                                if (contentToProcess) {
+                                    processField(contentToProcess, { fileIndex, partIndex, key: pathKey });
                                 }
                             }
                             part.choices?.forEach((choice, choiceIndex) => {
