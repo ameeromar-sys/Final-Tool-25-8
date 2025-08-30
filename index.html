@@ -2894,21 +2894,19 @@
                             // Correctly handle all types of 'answer' fields for processing
                             // (This block is within the file.data.parts?.forEach loop)
                             const originalPart = TranslatorApp.state.originalJsonData[fileIndex].data.parts[partIndex];
-                            if (originalPart.answer) {
+                            if (originalPart?.answer) {
                                 let contentToProcess = null;
                                 let pathKey = 'answer'; // Default path key for simple string or array
-    
+        
                                 if (typeof originalPart.answer === 'string') {
                                     contentToProcess = originalPart.answer;
                                 } else if (Array.isArray(originalPart.answer)) {
-                                    // Handle array of strings by joining them
                                     contentToProcess = originalPart.answer.join('');
                                 } else if (typeof originalPart.answer === 'object' && originalPart.answer.hasOwnProperty('value')) {
-                                    // Handle object with a 'value' property
                                     contentToProcess = originalPart.answer.value;
-                                    pathKey = 'answer.value'; // Adjust the path key for objects
+                                    pathKey = 'answer.value';
                                 }
-    
+        
                                 if (contentToProcess) {
                                     processField(contentToProcess, { fileIndex, partIndex, key: pathKey });
                                 }
@@ -3742,52 +3740,51 @@
                         html += renderField('البيان (Statement)', TranslatorApp.state.originalJsonData[fileIndex].data.statement, data.statement, 'statement');
 
                         data.parts?.forEach((part, partIndex) => {
-                            try {
-                                const originalPart = TranslatorApp.state.originalJsonData[fileIndex].data.parts[partIndex];
-                                if (!originalPart) return;
-
-                                html += '<div class="border-t pt-4 mt-4 space-y-4" style="border-color: var(--card-border);">';
-                                html += `<h5 class="font-semibold text-md" style="color: var(--secondary-text);">الجزء ${partIndex + 1} (النوع: ${part.type || 'غير محدد'})</h5>`;
-
-                                html += renderField('السؤال (Stem)', originalPart.stem, part.stem, `parts.${partIndex}.stem`);
-
-                                // Correctly handle the 'answer' field whether it's a string or an array
-                                if (originalPart.answer) {
-                                    let originalValueToRender = originalPart.answer;
-                                    let translatedValueToRender = part.answer;
-
-                                    if (Array.isArray(originalPart.answer)) {
-                                        originalValueToRender = originalPart.answer.join('');
-                                        translatedValueToRender = Array.isArray(part.answer) ? part.answer.join('') : part.answer;
-                                    } else if (typeof originalPart.answer === 'object' && originalPart.answer.hasOwnProperty('value')) {
-                                        originalValueToRender = originalPart.answer.value;
-                                        translatedValueToRender = part.answer?.value;
-                                    }
-                                    if (originalValueToRender) {
-                                        html += renderField('الإجابة (Answer)', originalValueToRender, translatedValueToRender, `parts.${partIndex}.answer`);
-                                    } else {
-                                        html += this.renderReadOnlyField('الإجابة (Answer - غير قابلة للترجمة)', JSON.stringify(originalPart.answer));
-                                    }
-                                }
-                                
-                                part.choices?.forEach((choice, choiceIndex) => {
-                                    const originalChoice = originalPart.choices[choiceIndex];
-                                    html += renderField(`خيار ${choiceIndex + 1}`, originalChoice.html_content, choice.html_content, `parts.${partIndex}.choices.${choiceIndex}.html_content`);
-                                });
-
-                                // **IMPROVEMENT**: Render gap_text_keys for translation
-                                part.gap_text_keys?.forEach((keyItem, keyIndex) => {
-                                    const originalKeyItem = originalPart.gap_text_keys[keyIndex];
-                                    html += renderField(`كلمة الفراغ ${keyIndex + 1}`, originalKeyItem.value, keyItem.value, `parts.${partIndex}.gap_text_keys.${keyIndex}.value`);
-                                });
-
-                                html += '</div>';
-                            } catch (partError) {
-                                console.warn('Error rendering part:', partError);
+                            const originalPart = TranslatorApp.state.originalJsonData[fileIndex]?.data?.parts?.[partIndex];
+                            if (!originalPart) {
+                                console.warn(`Original part missing for fileIndex ${fileIndex}, partIndex ${partIndex}`);
                                 html += '<div class="border-t pt-4 mt-4 space-y-4" style="border-color: var(--card-border);">';
                                 html += `<h5 class="font-semibold text-md" style="color: var(--error-color);">خطأ في عرض الجزء ${partIndex + 1}</h5>`;
                                 html += '</div>';
+                                return;
                             }
+
+                            html += '<div class="border-t pt-4 mt-4 space-y-4" style="border-color: var(--card-border);">';
+                            html += `<h5 class="font-semibold text-md" style="color: var(--secondary-text);">الجزء ${partIndex + 1} (النوع: ${part.type || 'غير محدد'})</h5>`;
+                            html += renderField('السؤال (Stem)', originalPart.stem, part.stem, `parts.${partIndex}.stem`);
+
+                            if (originalPart.answer) {
+                                let originalValueToRender = originalPart.answer;
+                                let translatedValueToRender = part.answer;
+
+                                if (Array.isArray(originalPart.answer)) {
+                                    originalValueToRender = originalPart.answer.join('');
+                                    translatedValueToRender = Array.isArray(part.answer) ? part.answer.join('') : part.answer;
+                                } else if (typeof originalPart.answer === 'object' && originalPart.answer.hasOwnProperty('value')) {
+                                    originalValueToRender = originalPart.answer.value;
+                                    translatedValueToRender = part.answer?.value;
+                                }
+
+                                if (originalValueToRender) {
+                                    html += renderField('الإجابة (Answer)', originalValueToRender, translatedValueToRender, `parts.${partIndex}.answer`);
+                                } else {
+                                    html += this.renderReadOnlyField('الإجابة (Answer - غير قابلة للترجمة)', JSON.stringify(originalPart.answer));
+                                }
+                            }
+
+                            part.choices?.forEach((choice, choiceIndex) => {
+                                const originalChoice = originalPart.choices[choiceIndex];
+                                html += renderField(`خيار ${choiceIndex + 1}`, originalChoice?.html_content, choice?.html_content, `parts.${partIndex}.choices.${choiceIndex}.html_content`);
+                            });
+
+                            part.gap_text_keys?.forEach((keyItem, keyIndex) => {
+                                const originalKeyItem = originalPart.gap_text_keys[keyIndex];
+                                if (originalKeyItem?.value) {
+                                    html += renderField(`كلمة الفراغ ${keyIndex + 1}`, originalKeyItem.value, keyItem.value, `parts.${partIndex}.gap_text_keys.${keyIndex}.value`);
+                                }
+                            });
+
+                            html += '</div>';
                         });
 
                         html += '</div>';
