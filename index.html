@@ -4075,7 +4075,12 @@
                                 const translatedPart = file.data.parts[partIndex];
                                 if (translatedPart) {
                                     part.stem = translatedPart.stem;
-                                    part.answer = translatedPart.answer;
+                                    const originalAnswer = originalFile.data.parts[partIndex].answer;
+                                    if (Array.isArray(originalAnswer)) {
+                                        part.answer = [translatedPart.answer];
+                                    } else {
+                                        part.answer = translatedPart.answer;
+                                    }    
                                     if (part.choices) {
                                         part.choices.forEach((choice, choiceIndex) => {
                                             if (translatedPart.choices && translatedPart.choices[choiceIndex]) {
