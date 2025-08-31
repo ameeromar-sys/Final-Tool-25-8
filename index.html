@@ -4077,7 +4077,7 @@
                                     part.stem = translatedPart.stem;
                                     const originalAnswer = originalFile.data.parts[partIndex].answer;
                                     if (Array.isArray(originalAnswer)) {
-                                        part.answer = [stripHtml(translatedPart.answer)];
+                                        part.answer = [translatedPart.answer];
                                     } else {
                                         part.answer = translatedPart.answer;
                                     }    
