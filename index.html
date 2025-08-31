@@ -2891,7 +2891,11 @@
                         // معالجة أجزاء السؤال
                         file.data.parts?.forEach((part, partIndex) => {
                             processField(part.stem, { fileIndex, partIndex, key: 'stem' });
-                            if (typeof part.answer === 'string') {
+                            if (Array.isArray(part.answer)) {
+                                part.answer.forEach((answerItem, answerIndex) => {
+                                    processField(answerItem, { fileIndex, partIndex, answerIndex, key: 'answer' });
+                                });
+                            } else if (typeof part.answer === 'string') {
                                 processField(part.answer, { fileIndex, partIndex, key: 'answer' });
                             }
                             part.choices?.forEach((choice, choiceIndex) => {
@@ -3674,8 +3678,8 @@
                                 const statusId = `status-${fieldId}`;
                 
                                 // Process values for display
-                                const displayOriginalValue = Array.isArray(originalValue) ? originalValue.join('') : String(originalValue);
-                                const displayTranslatedValue = Array.isArray(translatedValue) ? translatedValue.join('') : String(translatedValue);
+                                const displayOriginalValue = (Array.isArray(originalValue) ? originalValue.join('') : String(originalValue));
+                                const displayTranslatedValue = (Array.isArray(translatedValue) ? translatedValue.join('') : String(translatedValue));
                                 
                                 // If the translated value is identical to the original, don't re-render it.
                                 // This prevents issues with non-translatable content.
@@ -3732,9 +3736,9 @@
 
                                 // Correctly handle the 'answer' field whether it's a string or an array
                                 if (originalPart.answer) {
-                                    if (typeof originalPart.answer === 'string') {
+                                    if (Array.isArray(originalPart.answer)) {
                                         html += renderField('الإجابة (Answer)', originalPart.answer, part.answer, `parts.${partIndex}.answer`);
-                                    } else if (Array.isArray(originalPart.answer)) {
+                                    } else if (typeof originalPart.answer === 'string') {
                                     // Join the array elements to form a single HTML string for editing
                                        html += renderField('الإجابة (Answer)', originalPart.answer, part.answer, `parts.${partIndex}.answer`);
                                     } else if (typeof originalPart.answer === 'object' && originalPart.answer.hasOwnProperty('value')) {
