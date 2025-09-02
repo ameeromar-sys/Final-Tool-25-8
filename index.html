@@ -4075,17 +4075,11 @@
                                 const translatedPart = file.data.parts[partIndex];
                                 if (translatedPart) {
                                     part.stem = translatedPart.stem;
-                                    
                                     const originalAnswer = originalFile.data.parts[partIndex].answer;
-                                    const translatedAnswerContent = translatedPart.answer;
-
-                                    // This is the key change: strip HTML from the translated answer
-                                    const plainTextAnswer = stripHtml(translatedAnswerContent);
-
                                     if (Array.isArray(originalAnswer)) {
-                                        part.answer = [plainTextAnswer];
+                                        part.answer = [translatedPart.answer];
                                     } else {
-                                        part.answer = plainTextAnswer;
+                                        part.answer = translatedPart.answer;
                                     }    
                                     if (part.choices) {
                                         part.choices.forEach((choice, choiceIndex) => {
