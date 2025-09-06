@@ -3259,85 +3259,77 @@
                         if (typeof htmlString !== 'string' || !htmlString) {
                             return '<div class="content-root" dir="rtl">&nbsp;</div>';
                         }
-                        // Debug: log problematic content
-                        if (htmlString.includes('__LOCK') || htmlString.includes('LexicalTheme')) {
-                            console.log('Problematic content detected:', htmlString.substring(0, 200));
-                        }
 
-                        // If content is just __LOCK__ placeholders, try to restore original content
-                        if (htmlString.trim() === '__LOCK__' || htmlString.trim() === '__LOCK_I_LOCK__') {
-                            // Try to find the original content from the original data
-                            const fileIndex = parseInt(document.querySelector('.editable-preview-field')?.dataset.fileIndex || '0', 10);
-                            const path = document.querySelector('.editable-preview-field')?.dataset.path || '';
-                            if (fileIndex >= 0 && path && TranslatorApp.state.originalJsonData[fileIndex]) {
-                                const keys = path.split('.');
-                                let originalContent = TranslatorApp.state.originalJsonData[fileIndex].data;
-                                for (let i = 0; i < keys.length; i++) {
-                                    originalContent = originalContent ? originalContent[keys[i]] : '';
-                                }
-                                if (originalContent && typeof originalContent === 'string') {
-                                    htmlString = originalContent;
-                                }
+                        // 1. Sanitize the incoming HTML first
+                        let sanitizedHtml = TranslatorApp.security.sanitize(htmlString);
+                        // 2. Create a temporary DOM element to parse the sanitized HTML
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = sanitizedHtml;
+
+                        // 3. Use a TreeWalker to process all nodes and convert LaTeX
+                        const walker = document.createTreeWalker(
+                            tempDiv,
+                            NodeFilter.SHOW_TEXT,
+                            null,
+                            false
+                        );
+                        const nodesToReplace = [];
+                        let node;
+                        while ((node = walker.nextNode())) {
+                            let textContent = node.textContent;
+
+                            // Find and replace LaTeX expressions
+                            const latexRegex = /(\$\$[\s\S]*?\$\$|\$[\s\S]*?\$)/g;
+                            const parts = textContent.split(latexRegex);
+                            if (parts.length > 1) {
+                                const fragment = document.createDocumentFragment();
+                                parts.forEach(part => {
+                                    if (part.startsWith('$$') && part.endsWith('$$')) {
+                                        const latex = part.slice(2, -2);
+                                        const mf = document.createElement('math-field');
+                                        mf.setAttribute('default-mode', 'math');
+                                        mf.setAttribute('value', latex);
+                                        mf.setAttribute('virtual-keyboard-mode', 'onfocus');
+                                        mf.setAttribute('use-shared-virtual-keyboard', '');
+                                        mf.setAttribute('dir', 'ltr'); // LaTeX is always LTR
+                                        fragment.appendChild(mf);
+                                    } else if (part.startsWith('$') && part.endsWith('$')) {
+                                        const latex = part.slice(1, -1);
+                                        const mf = document.createElement('math-field');
+                                        mf.setAttribute('default-mode', 'inline-math');
+                                        mf.setAttribute('value', latex);
+                                        mf.setAttribute('virtual-keyboard-mode', 'onfocus');
+                                        mf.setAttribute('use-shared-virtual-keyboard', '');
+                                        mf.setAttribute('dir', 'ltr'); // LaTeX is always LTR
+                                        fragment.appendChild(mf);
+                                    } else {
+                                        fragment.appendChild(document.createTextNode(part));
+                                    }
+                                });
+                                nodesToReplace.push({ oldNode: node, newNode: fragment });
                             }
                         }
-
-                        // Handle empty or null content
-                        if (!htmlString || htmlString.trim() === '') {
-                            return '<div class="content-root" dir="rtl">&nbsp;</div>';
-                        }
-
-                        // 1) Keep any pre-existing <math-field> as-is to avoid double-wrapping
-                        htmlString = htmlString.replace(/<math-field[\s\S]*?<\/math-field>/gi, (m) => `__MATHFIELD__${btoa(unescape(encodeURIComponent(m)))}__`);
-                        const latexRegex = /(\$\$[\s\S]*?\$\$|\$[\s\S]*?\$)/g;
-                        const parts = htmlString.split(latexRegex);
-                        const content = parts.map(part => {
-                            try {
-                                if (!part) return '';
-                                if (part.startsWith('$$') && part.endsWith('$$')) {
-                                    const latex = part.slice(2, -2).replace(/"/g, '&quot;');
-                                    return `<math-field default-mode="math" value="${latex}" virtual-keyboard-mode="onfocus" use-shared-virtual-keyboard dir="ltr"></math-field>`;
-                                }
-                                if (part.startsWith('$') && part.endsWith('$')) {
-                                    const latex = part.slice(1, -1).replace(/"/g, '&quot;');
-                                    return `<math-field default-mode="inline-math" value="${latex}" virtual-keyboard-mode="onfocus" use-shared-virtual-keyboard dir="ltr"></math-field>`;
-                                }
-                                // Inject editable math-fields for common chemical formulas in plain text
-                                let injected = this.injectChemistryMathFields(part);
-                                // Decorate blanks ___ to visible slots (preview-only)
-                                injected = this.decorateBlanks(injected);
-                                const sanitized = TranslatorApp.security.sanitize(injected)
-                                    // normalize multiplication sign to match system rendering
-                                    .replace(/\bx\b/g, '×');
-                                const hasBlock = /<\s*(table|ul|ol|li|div|p|pre|code|thead|tbody|tr|td|th|img|audio)\b/i.test(sanitized);
-                                return hasBlock ? sanitized : `<span>${sanitized}</span>`;
-                            } catch (partError) {
-                                console.warn('Error processing part:', partError);
-                                return part || '';
-                            }
-                        }).join('');
-                        // 2) Restore original math-field fragments
-                        const restored = content.replace(/__MATHFIELD__([A-Za-z0-9+/=]+)__/g, (_, b64) => {
-                            try { return decodeURIComponent(escape(atob(b64))); } catch { return ''; }
+                        // Perform the replacements
+                        nodesToReplace.forEach(({ oldNode, newNode }) => {
+                            oldNode.parentNode.replaceChild(newNode, oldNode);
                         });
 
-                        // 3) Apply smart text direction processing
-                        const enhancedContent = TranslatorApp.utils.textDirection.enhancePreviewContent(restored);
+                        // 4. Handle other custom rendering logic, like blanks and spans
+                        let finalHtml = tempDiv.innerHTML;
+                        finalHtml = this.decorateBlanks(finalHtml);
+                        finalHtml = this.injectChemistryMathFields(finalHtml);
+                        finalHtml = TranslatorApp.utils.textDirection.enhancePreviewContent(finalHtml);
 
-                        // 4) Determine the main direction for the container
-                        const textContent = restored.replace(/<[^>]*>/g, ' ').trim();
+                        const textContent = tempDiv.textContent || '';
                         const containerDirection = TranslatorApp.utils.textDirection.getDominantDirection(textContent);
-                        const isMixed = TranslatorApp.utils.textDirection.isMixed(textContent);
+                        const dirAttr = containerDirection === 'rtl' ? 'rtl' : 'ltr';
 
-                        // 5) Set appropriate attributes for the container
-                        const dirAttr = isMixed ? 'auto' : containerDirection;
-                        const bidiClass = isMixed ? 'mixed-content' : (containerDirection === 'rtl' ? 'rtl-auto' : 'ltr-auto');
-
-                        return `<div class="content-root ${bidiClass}" dir="${dirAttr}">${enhancedContent}</div>`;
+                        return `<div class="content-root" dir="${dirAttr}">${finalHtml}</div>`;
                     } catch (error) {
                         console.error('Render content with math error:', error);
                         return '<div class="content-root" dir="rtl">فشل في عرض المحتوى</div>';
                     }
-                },
+                },     
 
                 // Convert plain chemical formulas (e.g., NaHCO3, H2SO4, Ca(OH)2) into inline math-fields
                 injectChemistryMathFields(text) {
@@ -3483,87 +3475,26 @@
 
                         const path = fieldContainer.dataset.path;
                         const fileIndex = parseInt(fieldContainer.dataset.fileIndex, 10);
-
+                
                         if (!path || isNaN(fileIndex)) {
                             console.warn('Invalid field container data:', { path, fileIndex });
                             return;
                         }
-
                         let newContent = '';
                         const root = fieldContainer.querySelector('.content-root');
-                        (root ? root.childNodes : []).forEach(node => {
-                            try {
-                                if (node.tagName === 'SPAN') {
-                                    // If span is a preview blank-slot, persist original underscores length
-                                    if (node.classList && node.classList.contains('blank-slot')) {
-                                        const raw = node.getAttribute('data-blank') || '___';
-                                        // Check if the blank is inside brackets
-                                        const parent = node.parentNode;
-                                        if (parent && parent.nodeType === Node.TEXT_NODE) {
-                                            const parentText = parent.textContent;
-                                            const nodeIndex = parentText.indexOf(node.textContent);
-                                            if (nodeIndex > 0 && nodeIndex < parentText.length - 1) {
-                                                const before = parentText[nodeIndex - 1];
-                                                const after = parentText[nodeIndex + node.textContent.length];
-                                                if ((before === '[' && after === ']') ||
-                                                    (before === '(' && after === ')') ||
-                                                    (before === '{' && after === '}')) {
-                                                    newContent += before + raw + after;
-                                                } else {
-                                                    newContent += raw;
-                                                }
-                                            } else {
-                                                newContent += raw;
-                                            }
-                                        } else {
-                                            newContent += raw;
-                                        }
-                                    }
-                                    // Handle direction-related spans (english-phrase, arabic-phrase, etc.)
-                                    else if (node.classList && (
-                                        node.classList.contains('english-phrase') ||
-                                        node.classList.contains('arabic-phrase') ||
-                                        node.classList.contains('english-numerals') ||
-                                        node.classList.contains('arabic-numerals')
-                                    )) {
-                                        // Extract the actual text content, preserving the wrapped text
-                                        newContent += node.textContent || node.innerHTML;
-                                    } else {
-                                        newContent += node.innerHTML;
-                                    }
-                                } else if (node.tagName === 'MATH-FIELD') {
+                        if (root) {
+                            root.childNodes.forEach(node => {
+                                if (node.tagName === 'MATH-FIELD') {
                                     const delimiter = node.getAttribute('default-mode') === 'math' ? '$$' : '$';
-                                    // If the math-field was originally from the source (read-only attr present), preserve element HTML
-                                    if (node.hasAttribute('data-origin') || node.getAttribute('read-only') === 'true') {
-                                        newContent += node.outerHTML;
-                                    } else {
-                                        newContent += `${delimiter}${node.value}${delimiter}`;
-                                    }
-                                } else if (node.nodeType === Node.ELEMENT_NODE) {
-                                    // For direction-related elements, extract clean text content
-                                    if (node.classList && (
-                                        node.classList.contains('mixed-content') ||
-                                        node.classList.contains('rtl-auto') ||
-                                        node.classList.contains('ltr-auto')
-                                    )) {
-                                        newContent += node.textContent;
-                                    } else {
-                                        // Preserve any other HTML element (e.g., table, div)
-                                        newContent += node.outerHTML;
-                                    }
-                                } else if (node.nodeType === Node.TEXT_NODE) {
-                                    newContent += node.textContent;
+                                    newContent += `${delimiter}${node.value}${delimiter}`;
+                                } else {
+                                    newContent += node.outerHTML || node.textContent;
                                 }
-                            } catch (nodeError) {
-                                console.warn('Error processing node:', nodeError);
-                            }
-                        });
-
-                        // If content is empty or just whitespace, save as empty string instead of __LOCK__
-                        if (!newContent.trim()) {
-                            newContent = '';
+                            });
                         }
-
+                        
+                        // Remove the visual blank slots from the final HTML before saving
+                        newContent = newContent.replace(/<span class="blank-slot"[^>]*><\/span>/g, '___');
                         this.updateData(fileIndex, path, newContent);
                         this.updateDiff(fileIndex, path);
                         const statusEl = document.getElementById(`status-field-${fileIndex}-${path.replace(/\./g, '-')}`);
@@ -3571,6 +3502,11 @@
                             statusEl.className = 'status-dot status-edited';
                             statusEl.title = 'تم التعديل يدوياً';
                         }
+
+                        // Push to history after update is complete
+                        TranslatorApp.history.push(TranslatorApp.state.translatedJsonData);
+                        TranslatorApp.state.hasUnsavedChanges = true;
+
                     } catch (error) {
                         console.error('Handle preview field update error:', error);
                         TranslatorApp.ui.showAlert('فشل في تحديث حقل المعاينة.', 'error');
@@ -3698,7 +3634,9 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <p class="text-sm font-semibold mb-1" style="color: var(--secondary-text);">الأصلي</p>
-                                <div class="original-text-readonly p-3 rounded-lg text-sm h-full" style="background-color: var(--bg-color); overflow:auto;">${this.renderContentWithMath(displayOriginalValue)}</div>
+                                <div class="original-text-readonly p-3 rounded-lg text-sm h-full" style="background-color: var(--bg-color); overflow:auto;">
+                                    <div dir="auto">${this.renderContentWithMath(displayOriginalValue)}</div>
+                                </div>
                             </div>
                             <div>
                                 <p class="text-sm font-semibold mb-1" style="color: var(--success-color);">المترجم (قابل للتعديل)</p>
