@@ -2667,7 +2667,7 @@
                 },
 
                 async withGeminiJSON(systemPrompt, userInstruction, payload, apiKey, signal) {
-                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
                     const fullPrompt = `${systemPrompt || ''}\n\n${userInstruction}\n\nPayload:\n${JSON.stringify(payload)}`;
                     const response = await fetch(apiUrl, {
                         method: 'POST',
@@ -2714,7 +2714,7 @@
                     return data.response || '';
                 },
                 async withGeminiText(systemPrompt, userPrompt, apiKey, signal) {
-                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
                     const fullPrompt = systemPrompt ? `${systemPrompt}\n\n---\n\n${userPrompt}` : userPrompt;
                     const response = await fetch(apiUrl, {
                         method: 'POST', headers: { 'Content-Type': 'application/json' }, signal,
