@@ -2949,8 +2949,10 @@
                     // تحديث عقد النص مباشرة
                     allJobs.forEach(job => {
                         const cacheKey = job.realOriginalText || job.originalText;
-                        const translatedText = this.state.translationCache.get(cacheKey);
+                        let translatedText = this.state.translationCache.get(cacheKey);
                         if (translatedText && job.domNode) {
+                            // Apply the new cleaning function here before using the translated text
+                            translatedText = this.quality.cleanLatexArabic(translatedText);
                             job.domNode.nodeValue = translatedText;
                         }
                     });
@@ -2960,13 +2962,16 @@
                         const pointer = JSON.parse(mapKey);
                         const finalHtml = parsedBody.innerHTML;
 
+                        // Apply the post-processing function here
+                        const cleanedHtml = TranslatorApp.quality.cleanLatexArabic(finalHtml);
+
                         const { fileIndex, partIndex, choiceIndex, key } = pointer;
                         let target = this.state.translatedJsonData[fileIndex].data;
 
-                        if (key === 'statement') target.statement = finalHtml;
-                        else if (key === 'stem') target.parts[partIndex].stem = finalHtml;
-                        else if (key === 'answer') target.parts[partIndex].answer = finalHtml;
-                        else if (key === 'choice') target.parts[partIndex].choices[choiceIndex].html_content = finalHtml;
+                        if (key === 'statement') target.statement = cleanedHtml;
+                        else if (key === 'stem') target.parts[partIndex].stem = cleanedHtml;
+                        else if (key === 'answer') target.parts[partIndex].answer = cleanedHtml;
+                        else if (key === 'choice') target.parts[partIndex].choices[choiceIndex].html_content = cleanedHtml;
                     }
 
                     for (const [mapKey, parsedBody] of parsedDataMap.entries()) {
@@ -2980,10 +2985,10 @@
                         let target = this.state.translatedJsonData[fileIndex].data;
 
 
-                        if (key === 'statement') target.statement = finalHtml;
-                        else if (key === 'stem') target.parts[partIndex].stem = finalHtml;
-                        else if (key === 'answer') target.parts[partIndex].answer = finalHtml;
-                        else if (key === 'choice') target.parts[partIndex].choices[choiceIndex].html_content = finalHtml;
+                        if (key === 'statement') target.statement = cleanedHtml;
+                        else if (key === 'stem') target.parts[partIndex].stem = cleanedHtml;
+                        else if (key === 'answer') target.parts[partIndex].answer = cleanedHtml;
+                        else if (key === 'choice') target.parts[partIndex].choices[choiceIndex].html_content = cleanedHtml;
                     }
 
                     this.state.activeScreen = 'preview';
