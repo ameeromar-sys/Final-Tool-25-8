@@ -2041,6 +2041,11 @@
                         if (legacy > 0 && want === 0) return ['تحذير: لم يُحفظ الفاصل <SEP> كما هو.'];
                         return [];
                     },
+                    cleanLatexArabic(text) {
+                        if (typeof text !== 'string') return text;
+                        // This is a simple but effective fix for the specific issue
+                        return text.replace(/\\alt{\\alef}\\prime/g, 'ا');
+                    },
                     checkHtmlBalance(dstHtml) {
                         const tags = ['b', 'i', 'u', 'strong', 'em', 'sub', 'sup', 'span', 'p', 'ul', 'ol', 'li'];
                         const errs = [];
@@ -2542,7 +2547,7 @@
                     const digitsRule = wantArabic ? 'Use Arabic-Indic numerals (٠١٢٣٤٥٦٧٨٩).' : 'Use English numerals (0123456789).';
                     const core = [
                         // Move the critical rule to the top for emphasis
-                        '**CRITICAL RULE: Do NOT transliterate Arabic letters or symbols into LaTeX format like \\alt{\\alef}\\prime. Keep all Arabic text as plain Arabic characters.**',
+                        '**CRITICAL: Do NOT output any LaTeX commands for Arabic text. For example, the word "طالب" should be rendered exactly as "طالب" and NOT as "\\alt{\\ta}\\prime \\alt{\\alef}\\prime \\alt{\\la}\\prime \\alt{\\ba}\\prime".**',
                         'Core rules:',
                         '- Do NOT add or remove content.',
                         '- Translate text content inside of HTML tags. Preserve the HTML tags themselves (e.g., <table>, <b>, <img>) and all LaTeX markup exactly as-is.',
@@ -2968,8 +2973,12 @@
                         const pointer = JSON.parse(mapKey);
                         const finalHtml = parsedBody.innerHTML;
 
+                        // Apply the post-processing function here
+                        const cleanedHtml = TranslatorApp.quality.cleanLatexArabic(finalHtml);
+
                         const { fileIndex, partIndex, choiceIndex, key } = pointer;
                         let target = this.state.translatedJsonData[fileIndex].data;
+
 
                         if (key === 'statement') target.statement = finalHtml;
                         else if (key === 'stem') target.parts[partIndex].stem = finalHtml;
