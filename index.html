@@ -2541,13 +2541,14 @@
                     const wantArabic = TranslatorApp.quality.wantsArabicIndicDigits(subject, grade);
                     const digitsRule = wantArabic ? 'Use Arabic-Indic numerals (٠١٢٣٤٥٦٧٨٩).' : 'Use English numerals (0123456789).';
                     const core = [
+                        // Move the critical rule to the top for emphasis
+                        '**CRITICAL RULE: Do NOT transliterate Arabic letters or symbols into LaTeX format like \\alt{\\alef}\\prime. Keep all Arabic text as plain Arabic characters.**',
                         'Core rules:',
                         '- Do NOT add or remove content.',
                         '- Translate text content inside of HTML tags. Preserve the HTML tags themselves (e.g., <table>, <b>, <img>) and all LaTeX markup exactly as-is.',
-                        '- **CRITICAL RULE: If a text segment contains no translatable prose (e.g., it is only a table of numbers, a chemical formula, or a URL), you MUST return the original text segment completely unchanged.**',
+                        '- If a text segment contains no translatable prose (e.g., it is only a table of numbers, a chemical formula, or a URL), you MUST return the original text segment completely unchanged.',
                         '- If present, keep placeholders __LOCK_n__ and __GLOSSARY_n__ unchanged.',
                         `- ${digitsRule}`,
-                        '- Do NOT transliterate Arabic letters or symbols into LaTeX format like \\alt{\\alef}\\prime. The word for "students" is "طالب".', // Add the new line here
                         `- If text contains the separator ${TranslatorApp.constants.CONTEXT_SEPARATOR}, translate each segment and preserve the separator exactly.`,
                         '- Keep the order of choices unchanged.',
                         '- Output in Arabic (MSA), formal tone.'
