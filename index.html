@@ -1956,6 +1956,11 @@
                     if (subject === 'Science' && grade === 'Grade 9') return true;
                     return false;
                 },
+                cleanLatexArabic(text) {
+                    if (typeof text !== 'string') return text;
+                    // This is a simple but effective fix for the specific issue
+                    return text.replace(/\\alt{\\alef}\\prime/g, 'ا');
+                },
                 protectSegments(text) {
                     const placeholders = {};
                     let idx = 0;
@@ -2040,11 +2045,6 @@
                         const legacy = (dstText.match(/<SEP>/g) || []).length;
                         if (legacy > 0 && want === 0) return ['تحذير: لم يُحفظ الفاصل <SEP> كما هو.'];
                         return [];
-                    },
-                    cleanLatexArabic(text) {
-                        if (typeof text !== 'string') return text;
-                        // This is a simple but effective fix for the specific issue
-                        return text.replace(/\\alt{\\alef}\\prime/g, 'ا');
                     },
                     checkHtmlBalance(dstHtml) {
                         const tags = ['b', 'i', 'u', 'strong', 'em', 'sub', 'sup', 'span', 'p', 'ul', 'ol', 'li'];
