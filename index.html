@@ -3568,28 +3568,32 @@
                     }
                 },
 
-                renderReadOnlyField(label, value) {
+                renderReadOnlyField(label, originalValue, translatedValue) {
                     try {
-                        if (value === undefined || value === null) return '';
-                        // **IMPROVEMENT**: Handle arrays by joining them for display
-                        const displayValue = Array.isArray(value) ? value.join(', ') : String(value);
-                        // Apply blank decoration to read-only fields as well
-                        const decoratedValue = this.decorateBlanks(displayValue);
+                        if (originalValue === undefined || originalValue === null) return '';
+                        const displayOriginalValue = Array.isArray(originalValue) ? originalValue.join(', ') : String(originalValue);
+                        const displayTranslatedValue = Array.isArray(translatedValue) ? translatedValue.join(', ') : String(translatedValue);
+                        // New check for numeric values
+                        const isNumeric = !isNaN(parseFloat(displayOriginalValue)) && isFinite(displayOriginalValue);
+                        const dirAttr = isNumeric ? 'ltr' : 'rtl'; // Force LTR for numbers
 
-                        // Apply smart text direction processing
-                        const enhancedValue = TranslatorApp.utils.textDirection.enhancePreviewContent(decoratedValue);
-
-                        // Determine direction for the content
-                        const textDirection = TranslatorApp.utils.textDirection.getDominantDirection(displayValue);
-                        const isMixed = TranslatorApp.utils.textDirection.isMixed(displayValue);
-                        const dirAttr = isMixed ? 'auto' : textDirection;
-                        const directionClass = isMixed ? 'mixed-content' : (textDirection === 'rtl' ? 'rtl-auto' : 'ltr-auto');
+                        const enhancedOriginal = isNumeric ? displayOriginalValue : TranslatorApp.utils.textDirection.enhancePreviewContent(displayOriginalValue);
+                        const enhancedTranslated = isNumeric ? displayTranslatedValue : TranslatorApp.utils.textDirection.enhancePreviewContent(displayTranslatedValue);
 
                         return `
-                <div class="border rounded-lg p-4" style="border-color: var (--card-border);">
-                        <h5 class="font-bold flex items-center mb-2">${TranslatorApp.security.sanitize(label)}</h5>
-                    <div class="p-3 rounded-lg text-sm ${directionClass}" dir="${dirAttr}" style="background-color: var (--bg-color); color: var (--secondary-text);">${enhancedValue}</div>
-                </div>`;
+                            <div class="border rounded-lg p-4" style="border-color: var(--card-border);">
+                                <h5 class="font-bold flex items-center mb-2">${TranslatorApp.security.sanitize(label)}</h5>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <p class="text-sm font-semibold mb-1" style="color: var(--secondary-text);">الأصلي</p>
+                                        <div class="p-3 rounded-lg text-sm h-full" dir="${dirAttr}" style="background-color: var(--bg-color); color: var(--secondary-text);">${enhancedOriginal}</div>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-semibold mb-1" style="color: var(--success-color);">المترجم</p>
+                                        <div class="p-3 rounded-lg text-sm h-full" dir="${dirAttr}" style="background-color: var(--bg-color); color: var(--secondary-text);">${enhancedTranslated}</div>
+                                    </div>
+                                </div>
+                            </div>`;    
                     } catch (error) {
                         console.error('Render read only field error:', error);
                         return `
@@ -3680,8 +3684,16 @@
                                     // Join the array elements to form a single HTML string for editing
                                        html += renderField('الإجابة (Answer)', originalPart.answer, part.answer, `parts.${partIndex}.answer`);
                                     } else if (typeof originalPart.answer === 'object' && originalPart.answer.hasOwnProperty('value')) {
-                                        // Allow editing if the translated part kept the same shape (object with value)
-                                       html += renderField('الإجابة (Answer)', originalPart.answer.value, (part.answer && part.answer.value) || originalPart.answer.value, `parts.${partIndex}.answer.value`);
+                                        const originalValue = originalPart.answer.value;
+                                        const translatedValue = (part.answer && part.answer.value) || originalPart.answer.value;
+                                        const isNumeric = !isNaN(parseFloat(originalValue)) && isFinite(originalValue);
+                                        // If the value is a number, display it directly without rich content rendering
+                                        if (isNumeric) {
+                                            html += this.renderReadOnlyField('الإجابة (Answer)', originalValue, translatedValue);
+                                        } else {
+                                            // Otherwise, render it as regular text content
+                                            html += renderField('الإجابة (Answer)', originalValue, translatedValue, `parts.${partIndex}.answer.value`);
+                                        }
                                     } else {
                                         html += this.renderReadOnlyField('الإجابة (Answer - غير قابلة للترجمة)', JSON.stringify(originalPart.answer));
                                     }
