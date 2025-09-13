@@ -1363,6 +1363,22 @@
                             console.error('Preview field update error:', error);
                         }
                     });
+                    this.dom.previewContainer.addEventListener('copy', (e) => {
+                        try {
+                            this.preview.handleCopyEvent(e);
+                        } catch (error) {
+                            console.error('Copy event error:', error);
+                        }
+                    });
+
+                    this.dom.previewContainer.addEventListener('paste', (e) => {
+                        try {
+                            this.preview.handlePasteEvent(e);
+                        } catch (error) {
+                            console.error('Paste event error:', error);
+                        }
+                    });
+                    
                     // Ensure MathLive keyboard opens for inline chemistry/math on focus
                     this.dom.previewContainer.addEventListener('pointerdown', (e) => {
                         try {
@@ -3349,7 +3365,104 @@
                         console.error('Render content with math error:', error);
                         return '<div class="content-root" dir="rtl">فشل في عرض المحتوى</div>';
                     }
-                },     
+                },
+
+                handleCopyEvent(e) {
+                    const selection = window.getSelection();
+                    if (!selection.rangeCount) return;
+
+                    const range = selection.getRangeAt(0);
+                    const clonedContent = range.cloneContents();
+                    const tempDiv = document.createElement('div');
+                    tempDiv.appendChild(clonedContent);
+
+                    const mathFields = tempDiv.querySelectorAll('math-field');
+                    mathFields.forEach(mf => {
+                        const span = document.createElement('span');
+                        const mode = mf.getAttribute('default-mode');
+                        const value = mf.value;
+                        const delimiter = (mode === 'math') ? '$$' : '$';
+                        span.textContent = `${delimiter}${value}${delimiter}`;
+                        mf.parentNode.replaceChild(span, mf);
+                    });
+
+                    const html = tempDiv.innerHTML;
+                    const text = tempDiv.textContent || '';
+    
+                    e.clipboardData.setData('text/html', html);
+                    e.clipboardData.setData('text/plain', text);
+                    e.preventDefault();
+                },
+
+                handlePasteEvent(e) {
+                    const pasteHtml = e.clipboardData.getData('text/html');
+    
+                    if (pasteHtml) {
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = pasteHtml;
+
+                        // Find all text nodes to convert LaTeX back to math-field
+                        const walker = document.createTreeWalker(
+                            tempDiv,
+                            NodeFilter.SHOW_TEXT,
+                            null,
+                            false
+                        );
+                        let node;
+                        const nodesToReplace = [];
+
+                        while ((node = walker.nextNode())) {
+                            const textContent = node.textContent;
+                            const latexRegex = /(\$\$[\s\S]*?\$\$|\$[\s\S]*?\$)/g;
+                            const parts = textContent.split(latexRegex);
+            
+                            if (parts.length > 1) {
+                                const fragment = document.createDocumentFragment();
+                                parts.forEach(part => {
+                                    if (part.startsWith('$$') && part.endsWith('$$')) {
+                                        const latex = part.slice(2, -2);
+                                        const mf = document.createElement('math-field');
+                                        mf.setAttribute('default-mode', 'math');
+                                        mf.setAttribute('value', latex);
+                                        mf.setAttribute('virtual-keyboard-mode', 'onfocus');
+                                        mf.setAttribute('use-shared-virtual-keyboard', '');
+                                        mf.setAttribute('dir', 'ltr');
+                                        fragment.appendChild(mf);
+                                    } else if (part.startsWith('$') && part.endsWith('$')) {
+                                        const latex = part.slice(1, -1);
+                                        const mf = document.createElement('math-field');
+                                        mf.setAttribute('default-mode', 'inline-math');
+                                        mf.setAttribute('value', latex);
+                                        mf.setAttribute('virtual-keyboard-mode', 'onfocus');
+                                        mf.setAttribute('use-shared-virtual-keyboard', '');
+                                        mf.setAttribute('dir', 'ltr');
+                                        fragment.appendChild(mf);
+                                    } else {
+                                        fragment.appendChild(document.createTextNode(part));
+                                    }
+                                });
+                                nodesToReplace.push({ oldNode: node, newNode: fragment });
+                            }
+                        }
+                        nodesToReplace.forEach(({ oldNode, newNode }) => {
+                            oldNode.parentNode.replaceChild(newNode, oldNode);
+                        });
+                        // Insert the content at the cursor's position
+                        e.preventDefault();
+                        const selection = window.getSelection();
+                        if (!selection.rangeCount) return;
+        
+                        const range = selection.getRangeAt(0);
+                        range.deleteContents();
+                        range.insertNode(tempDiv);
+                        selection.collapseToEnd();
+                    } else {
+                        // Fallback for plain text paste
+                        e.preventDefault();
+                        document.execCommand('insertText', false, e.clipboardData.getData('text/plain'));
+                    }
+                },  
+                        
 
                 // Convert plain chemical formulas (e.g., NaHCO3, H2SO4, Ca(OH)2) into inline math-fields
                 injectChemistryMathFields(text) {
