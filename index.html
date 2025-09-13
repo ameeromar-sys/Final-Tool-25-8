@@ -1958,8 +1958,9 @@
                 },
                 cleanLatexArabic(text) {
                     if (typeof text !== 'string') return text;
-                    // This is a simple but effective fix for the specific issue
-                    return text.replace(/\\alt{\\alef}\\prime/g, '');
+                    // This is a simple but effective fix for the specific issue
+                    return text.replace(/\\alt{\\alef}\\prime/g, '');
+                    .replace(/\\lam/g, 'والباقي ');
                 },
                 protectSegments(text) {
                     const placeholders = {};
@@ -2018,12 +2019,14 @@
                 },
                 postProcess(text, ctx = { subject: 'None', grade: 'None' }) {
                     let out = text || '';
-                    const toArabic = this.wantsArabicIndicDigits(ctx.subject, ctx.grade);
-                    out = this.convertDigits(out, toArabic);
-                    out = this.enforceUnits(out);
-                    out = this.normalizeArabicPunct(out);
-                    out = out.replace(/»([^»«]+)»/g, '«$1»');
-                    return out;
+                    // Add a new rule to replace the remainder symbol
+                    out = out.replace(/R\s*(\d+)/g, ' والباقي $1');
+                    const toArabic = this.wantsArabicIndicDigits(ctx.subject, ctx.grade);
+                    out = this.convertDigits(out, toArabic);
+                    out = this.enforceUnits(out);
+                    out = this.normalizeArabicPunct(out);
+                    out = out.replace(/»([^»«]+)»/g, '«$1»');
+                    return out;
                 },
                 qa: {
                     extractPlain(html) { const div = document.createElement('div'); div.innerHTML = html || ''; return (div.textContent || div.innerText || '').trim(); },
@@ -3274,6 +3277,8 @@
                         if (typeof htmlString !== 'string' || !htmlString) {
                             return '<div class="content-root" dir="rtl">&nbsp;</div>';
                         }
+
+                        const cleanedHtml = htmlString.replace(/R\s*(\d+)/g, 'والباقي $1');
 
                         // 1. Sanitize the incoming HTML first
                         let sanitizedHtml = TranslatorApp.security.sanitize(htmlString);
