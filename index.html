@@ -1959,8 +1959,8 @@
                 cleanLatexArabic(text) {
                     if (typeof text !== 'string') return text;
                     // This is a simple but effective fix for the specific issue
-                    return text.replace(/\\alt{\\alef}\\prime/g, '');
-                    .replace(/\\lam/g, 'والباقي ');
+                    return text.replace(/\\alt{\\alef}\\prime/g, '')
+                               .replace(/\\lam/g, 'والباقي ');
                 },
                 protectSegments(text) {
                     const placeholders = {};
