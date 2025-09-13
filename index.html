@@ -3396,11 +3396,16 @@
 
                 handlePasteEvent(e) {
                     try {
+                        
                         const pasteHtml = e.clipboardData.getData('text/html');
-                        const pasteText = e.clipboardData.getData('text/plain');
-
-                        if (pasteHtml && pasteHtml.includes('<math-field')) {
+        
+                        // This regex correctly identifies and captures the LaTeX string inside the custom MathLive tags.
+                        // It handles both inline ($...$) and display ($$...$$) math.
+                        const mathFieldRegex = /<span[^>]*>(\$\$[\s\S]*?\$\$|\$[\s\S]*?\$)(?:\s*<span[^>]*><\/span>)?<\/span>/g;
+        
+                        if (pasteHtml && pasteHtml.match(mathFieldRegex)) {
                             e.preventDefault();
+            
                             const tempDiv = document.createElement('div');
                             tempDiv.innerHTML = pasteHtml;
 
@@ -3410,32 +3415,38 @@
                             const range = selection.getRangeAt(0);
                             range.deleteContents();
 
-                            // Insert each child node from the temporary div into the current selection range.
-                            // This is a common and reliable way to insert rich content.
+                            // Create a DocumentFragment to hold the new elements before inserting
+                            const fragment = document.createDocumentFragment();
+
+                            // Convert raw LaTeX strings back into `math-field` elements
+                            tempDiv.innerHTML = tempDiv.innerHTML.replace(mathFieldRegex, (match, latexContent) => {
+                                const delimiter = latexContent.startsWith('$$') ? '$$' : '$';
+                                const value = latexContent.slice(delimiter.length, -delimiter.length);
+                                return `<math-field default-mode="inline-math" value="${value}" dir="ltr"></math-field>`;
+                            });
+
+                            // Append the new content from the temp div to the fragment
                             while (tempDiv.firstChild) {
-                                range.insertNode(tempDiv.firstChild);
+                                fragment.appendChild(tempDiv.firstChild);
                             }
+                            // Insert the fragment at the current cursor position
+                            range.insertNode(fragment);
                             selection.collapseToEnd();
-            
-                            // Re-render the entire preview pane to ensure MathLive components are properly initialized.
-                            // A more optimized approach would be to only re-initialize the new components,
-                            // but a full re-render is safer and more robust in this context.
-                            this.render();
-                            TranslatorApp.state.hasUnsavedChanges = true;
+
+                            // Now, get the edited field container and update the data
+                            const fieldContainer = e.target.closest('.editable-preview-field');
+                            if (fieldContainer) {
+                                this.handlePreviewFieldUpdate(fieldContainer);
+                            }
                         } else {
-                            // Fallback for plain text paste.
-                            // The browser's default paste action handles this well.
-                            // By not preventing the default, we let it handle the plain text.
-                            // e.preventDefault();
-                            // document.execCommand('insertText', false, pasteText);
+                            // Allow default browser paste behavior for plain text.
+                            // We should not prevent default if it's not a math field paste.
                         }
                     } catch (error) {
                         console.error('Paste event error:', error);
-                        TranslatorApp.ui.showAlert('فشل في لصق المحتوى. تم نسخ النص العادي بدلاً من ذلك.', 'error');
+                        TranslatorApp.ui.showAlert('فشل في لصق المحتوى.', 'error');
                     }
-                },
-                    
-                        
+                },      
 
                 // Convert plain chemical formulas (e.g., NaHCO3, H2SO4, Ca(OH)2) into inline math-fields
                 injectChemistryMathFields(text) {
