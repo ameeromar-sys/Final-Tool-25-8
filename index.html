@@ -3370,22 +3370,25 @@
                 handleCopyEvent(e) {
                     const selection = window.getSelection();
                     if (!selection.rangeCount) return;
-
                     const range = selection.getRangeAt(0);
                     const clonedContent = range.cloneContents();
+
                     const tempDiv = document.createElement('div');
                     tempDiv.appendChild(clonedContent);
 
                     const mathFields = tempDiv.querySelectorAll('math-field');
                     mathFields.forEach(mf => {
-                        const span = document.createElement('span');
                         const mode = mf.getAttribute('default-mode');
                         const value = mf.value;
                         const delimiter = (mode === 'math') ? '$$' : '$';
-                        span.textContent = `${delimiter}${value}${delimiter}`;
-                        mf.parentNode.replaceChild(span, mf);
+        
+                        // Replace the <math-field> with its raw LaTeX representation
+                        // We also wrap it in a special span with a unique attribute for easier detection during paste
+                        const newHtml = `<span data-mathlive-copied="true">${delimiter}${value}${delimiter}</span>`;
+                        const tempSpan = document.createElement('span');
+                        tempSpan.innerHTML = newHtml;
+                        mf.parentNode.replaceChild(tempSpan.firstChild, mf);
                     });
-
                     const html = tempDiv.innerHTML;
                     const text = tempDiv.textContent || '';
     
@@ -3396,55 +3399,60 @@
 
                 handlePasteEvent(e) {
                     try {
-                        
                         const pasteHtml = e.clipboardData.getData('text/html');
         
-                        // This regex correctly identifies and captures the LaTeX string inside the custom MathLive tags.
-                        // It handles both inline ($...$) and display ($$...$$) math.
-                        const mathFieldRegex = /<span[^>]*>(\$\$[\s\S]*?\$\$|\$[\s\S]*?\$)(?:\s*<span[^>]*><\/span>)?<\/span>/g;
-        
-                        if (pasteHtml && pasteHtml.match(mathFieldRegex)) {
-                            e.preventDefault();
-            
+                        if (pasteHtml) {
                             const tempDiv = document.createElement('div');
                             tempDiv.innerHTML = pasteHtml;
 
-                            const selection = window.getSelection();
-                            if (!selection.rangeCount) return;
+                            const mathSpans = tempDiv.querySelectorAll('span[data-mathlive-copied="true"]');
+            
+                            if (mathSpans.length > 0) {
+                                e.preventDefault();
+                
+                                // Replace each special span with a new math-field element
+                                mathSpans.forEach(span => {
+                                    const latexContent = span.textContent;
+                                    const delimiter = latexContent.startsWith('$$') ? '$$' : '$';
+                                    const value = latexContent.slice(delimiter.length, -delimiter.length);
 
-                            const range = selection.getRangeAt(0);
-                            range.deleteContents();
+                                    const mf = document.createElement('math-field');
+                                    mf.setAttribute('default-mode', delimiter === '$$' ? 'math' : 'inline-math');
+                                    mf.setAttribute('value', value);
+                                    mf.setAttribute('virtual-keyboard-mode', 'onfocus');
+                                    mf.setAttribute('use-shared-virtual-keyboard', '');
+                                    mf.setAttribute('dir', 'ltr'); // Math is always LTR
 
-                            // Create a DocumentFragment to hold the new elements before inserting
-                            const fragment = document.createDocumentFragment();
-
-                            // Convert raw LaTeX strings back into `math-field` elements
-                            tempDiv.innerHTML = tempDiv.innerHTML.replace(mathFieldRegex, (match, latexContent) => {
-                                const delimiter = latexContent.startsWith('$$') ? '$$' : '$';
-                                const value = latexContent.slice(delimiter.length, -delimiter.length);
-                                return `<math-field default-mode="inline-math" value="${value}" dir="ltr"></math-field>`;
-                            });
-
-                            // Append the new content from the temp div to the fragment
-                            while (tempDiv.firstChild) {
-                                fragment.appendChild(tempDiv.firstChild);
+                                    span.parentNode.replaceChild(mf, span);
+                                });
+                                // Insert the processed content into the editable field
+                                const selection = window.getSelection();
+                                if (!selection.rangeCount) return;
+                
+                                const range = selection.getRangeAt(0);
+                                range.deleteContents();
+                
+                                while (tempDiv.firstChild) {
+                                    range.insertNode(tempDiv.firstChild);
+                                }
+                                selection.collapseToEnd();
+                
+                                // Update the app state after inserting new content
+                                const fieldContainer = e.target.closest('.editable-preview-field');
+                                if (fieldContainer) {
+                                    this.handlePreviewFieldUpdate(fieldContainer);
+                                }
+                            } else {
+                                // If no special math spans are found, let the browser handle plain HTML or text paste
+                                // We do not call e.preventDefault() here, which allows default paste behavior
+                                return;
                             }
-                            // Insert the fragment at the current cursor position
-                            range.insertNode(fragment);
-                            selection.collapseToEnd();
-
-                            // Now, get the edited field container and update the data
-                            const fieldContainer = e.target.closest('.editable-preview-field');
-                            if (fieldContainer) {
-                                this.handlePreviewFieldUpdate(fieldContainer);
-                            }
-                        } else {
-                            // Allow default browser paste behavior for plain text.
-                            // We should not prevent default if it's not a math field paste.
                         }
                     } catch (error) {
                         console.error('Paste event error:', error);
                         TranslatorApp.ui.showAlert('فشل في لصق المحتوى.', 'error');
+                        // Fallback to default paste behavior if an error occurs
+                        document.execCommand('insertText', false, e.clipboardData.getData('text/plain'));
                     }
                 },      
 
