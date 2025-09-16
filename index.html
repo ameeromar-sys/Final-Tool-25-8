@@ -1528,6 +1528,28 @@
                                         e.preventDefault();
                                         TranslatorApp.history.redo();
                                         break;
+                                    case 'm':
+                                        if (isEditable) {
+                                            e.preventDefault();
+                                            const selection = window.getSelection();
+                                            if (!selection.rangeCount) return;
+                                            const range = selection.getRangeAt(0);
+                                    
+                                            // Create and configure a new math-field element
+                                            const newMathField = document.createElement('math-field');
+                                            newMathField.setAttribute('default-mode', 'inline-math');
+                                            newMathField.setAttribute('value', '');
+                                            newMathField.setAttribute('virtual-keyboard-mode', 'onfocus');
+                                            newMathField.setAttribute('use-shared-virtual-keyboard', '');
+                                            newMathField.setAttribute('dir', 'ltr');
+                                            
+                                            range.insertNode(newMathField);
+                                            // Place cursor inside the new math field
+                                            newMathField.focus();
+                                    
+                                            TranslatorApp.preview.handlePreviewFieldUpdate(isEditable.closest('.editable-preview-field'));
+                                        }
+                                        break;
                                 }
                             }
 
@@ -3370,19 +3392,19 @@
                 handleCopyEvent(e) {
                     const selection = window.getSelection();
                     if (!selection.rangeCount) return;
-
+                
                     const range = selection.getRangeAt(0);
                     const clonedContent = range.cloneContents();
                     const tempDiv = document.createElement('div');
                     tempDiv.appendChild(clonedContent);
-
+                
                     const mathFields = tempDiv.querySelectorAll('math-field');
                     mathFields.forEach(mf => {
                         const mode = mf.getAttribute('default-mode');
                         const value = mf.value;
                         const delimiter = (mode === 'math') ? '$$' : '$';
                         const latexString = `${delimiter}${value}${delimiter}`;
-        
+                        
                         const textNode = document.createTextNode(latexString);
                         mf.parentNode.replaceChild(textNode, mf);
                     });
@@ -3399,25 +3421,23 @@
                         e.preventDefault();
                         const pasteHtml = e.clipboardData.getData('text/html');
                         const pasteText = e.clipboardData.getData('text/plain');
-                
                         let contentToInsert = '';
-                
                         if (pasteHtml) {
-                            // Priority 1: Check for rich text from our own app
                             const tempDiv = document.createElement('div');
                             tempDiv.innerHTML = pasteHtml;
                             contentToInsert = tempDiv.innerHTML;
                         } else {
-                            // Priority 2: Fallback to plain text
                             contentToInsert = pasteText;
                         }
                         if (!contentToInsert) return;
 
-                        // Create a temporary element to process the pasted content
+                        const selection = window.getSelection();
+                        if (!selection.rangeCount) return;
+                        
+                        const range = selection.getRangeAt(0);
+                        range.deleteContents();
                         const processorDiv = document.createElement('div');
                         processorDiv.innerHTML = contentToInsert;
-                
-                        // Process all text nodes to convert LaTeX back to math-field
                         const walker = document.createTreeWalker(
                             processorDiv,
                             NodeFilter.SHOW_TEXT,
@@ -3429,7 +3449,6 @@
                         
                         while ((node = walker.nextNode())) {
                             const textContent = node.textContent;
-                            // Updated regex to handle LaTeX delimiters
                             const latexRegex = /(\$\$[\s\S]*?\$\$|\$[^$]*\$)/g;
                             const parts = textContent.split(latexRegex);
                             
@@ -3454,7 +3473,7 @@
                                         mf.setAttribute('use-shared-virtual-keyboard', '');
                                         mf.setAttribute('dir', 'ltr');
                                         fragment.appendChild(mf);
-                                    } else if (part) { // Add plain text parts
+                                    } else if (part) {
                                         fragment.appendChild(document.createTextNode(part));
                                     }
                                 });
@@ -3464,32 +3483,22 @@
                         nodesToReplace.forEach(({ oldNode, newNode }) => {
                             oldNode.parentNode.replaceChild(newNode, oldNode);
                         });
-                        // Insert the content at the cursor's position
-                        const selection = window.getSelection();
-                        if (!selection.rangeCount) return;
-                        
-                        const range = selection.getRangeAt(0);
-                        range.deleteContents();
-                        
-                        // Use a fragment to insert content efficiently
                         const finalFragment = document.createDocumentFragment();
                         while (processorDiv.firstChild) {
                             finalFragment.appendChild(processorDiv.firstChild);
                         }
                         range.insertNode(finalFragment);
                         selection.collapseToEnd();
-                        
-                        // Now, update the app state
+                
                         const fieldContainer = e.target.closest('.editable-preview-field');
                         if (fieldContainer) {
                             this.handlePreviewFieldUpdate(fieldContainer);
                         }
                     } catch (error) {
                         console.error('Paste event error:', error);
-                        TranslatorApp.ui.showAlert('فشل في لصق المحتوى. تم نسخ النص العادي بدلاً من ذلك.', 'error');
-                        // Fallback to default paste if all else fails
+                        TranslatorApp.ui.showAlert('فشل في لصق المحتوى.', 'error');
                         document.execCommand('insertText', false, e.clipboardData.getData('text/plain'));
-                    }        
+                    }
                 },      
 
                 // Convert plain chemical formulas (e.g., NaHCO3, H2SO4, Ca(OH)2) into inline math-fields
