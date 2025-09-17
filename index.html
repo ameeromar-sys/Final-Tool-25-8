@@ -197,6 +197,36 @@
             min-height: 80px;
         }
 
+        math-field {
+            position: relative;
+        }
+
+        .math-field-delete-btn {
+            position: absolute;
+            top: -10px;
+            left: -10px; /* Position it at the top-left corner */
+            background-color: var(--error-color);
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            line-height: 1;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s;
+            z-index: 10;
+        }
+
+        math-field:hover .math-field-delete-btn {
+            opacity: 1;
+            visibility: visible;
+        }
         /* MathLive default look (editable) */
         math-field {
             border: 1px solid var(--input-border);
@@ -1032,6 +1062,31 @@
 
             bindEvents() {
                 try {
+                    this.dom.previewContainer.addEventListener('keydown', (e) => {
+                        // ...existing code for Ctrl+M shortcut...
+
+                        // Add this new section for handling Backspace/Delete
+                        if (e.key === 'Backspace' || e.key === 'Delete') {
+                            const selection = window.getSelection();
+                            if (!selection.rangeCount) return;
+
+                            const range = selection.getRangeAt(0);
+                            const focusNode = range.startContainer;
+                            const parentMathField = focusNode.parentNode.closest('math-field');
+                    
+                            // Check if the parent is a math-field element and its content is empty
+                            if (parentMathField && parentMathField.value.trim() === '') {
+                                e.preventDefault();
+                                const fieldContainer = parentMathField.closest('.editable-preview-field');
+                                parentMathField.remove();
+                                if (fieldContainer) {
+                                    // Trigger an update after deletion
+                                    TranslatorApp.preview.handlePreviewFieldUpdate(fieldContainer);
+                                }
+                            }
+                        }
+                    }, true);
+                    
                     this.dom.newSessionBtn.addEventListener('click', (e) => {
                         try {
                             this.session.clear.bind(this.session)();
