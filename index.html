@@ -2585,7 +2585,12 @@
                             'Grade 4': 'Translate ICT (Grade 4).\nUse Arabic-Indic numerals; product names bilingual; preserve \\n<SEP>\\n.',
                             'Grade 5': 'Translate ICT (Grade 5).\nUse English numerals; Arabic labels; preserve \\n<SEP>\\n.'
                         }
-                    }
+                    },
+                    'Discover': {
+                        grades: ['Grades 1–3'], prompts: {
+                            'Grades 1–3': 'Translate Science (9).\nUse Arabic-Indic numerals; Arabic labels; preserve \\n<SEP>\\n.'
+                        }
+                    }
                 },
                 init() { this.populateSubjects(); this.updateUI(); },
                 populateSubjects() {
@@ -2614,22 +2619,22 @@
                 },
                 buildSystemPrompt() {
                     const base = this.getCurrentPrompt();
-                    const subject = TranslatorApp.dom.subjectSelect.value;
-                    const grade = TranslatorApp.dom.gradeSelect.value;
-                    const wantArabic = TranslatorApp.quality.wantsArabicIndicDigits(subject, grade);
-                    const digitsRule = wantArabic ? 'Use Arabic-Indic numerals (٠١٢٣٤٥٦٧٨٩).' : 'Use English numerals (0123456789).';
-                    const core = [
+                    const subject = TranslatorApp.dom.subjectSelect.value;
+                    const grade = TranslatorApp.dom.gradeSelect.value;
+                    const wantArabic = TranslatorApp.quality.wantsArabicIndicDigits(subject, grade);
+                    const digitsRule = wantArabic ? 'Use Arabic-Indic numerals (٠١٢٣٤٥٦٧٨٩).' : 'Use English numerals (0123456789).';
+                    const core = [
                         // Move the critical rule to the top for emphasis
-                        '**CRITICAL: Do NOT output any LaTeX commands for Arabic text. For example, the word "طالب" should be rendered exactly as "طالب" and NOT as "\\alt{\\ta}\\prime \\alt{\\alef}\\prime \\alt{\\la}\\prime \\alt{\\ba}\\prime".**',
-                        'Core rules:',
-                        '- Do NOT add or remove content.',
-                        '- Translate text content inside of HTML tags. Preserve the HTML tags themselves (e.g., <table>, <b>, <img>) and all LaTeX markup exactly as-is.',
-                        '- If a text segment contains no translatable prose (e.g., it is only a table of numbers, a chemical formula, or a URL), you MUST return the original text segment completely unchanged.',
-                        '- If present, keep placeholders __LOCK_n__ and __GLOSSARY_n__ unchanged.',
-                        `- ${digitsRule}`,
-                        `- If text contains the separator ${TranslatorApp.constants.CONTEXT_SEPARATOR}, translate each segment and preserve the separator exactly.`,
-                        '- Keep the order of choices unchanged.',
-                        '- Output in Arabic (MSA), formal tone.'
+                        '**CRITICAL: Do NOT output any LaTeX commands for Arabic text. For example, the word "طالب" should be rendered exactly as "طالب" and NOT as "\\alt{\\ta}\\prime \\alt{\\alef}\\prime \\alt{\\la}\\prime \\alt{\\ba}\\prime".**',
+                        'Core rules:',
+                        '- Do NOT add or remove content.',
+                        '- Translate text content inside of HTML tags. Preserve the HTML tags themselves (e.g., <table>, <b>, <img>) and all LaTeX markup exactly as-is.',
+                        '- If a text segment contains no translatable prose (e.g., it is only a table of numbers, a chemical formula, or a URL), you MUST return the original text segment completely unchanged.',
+                        '- If present, keep placeholders __LOCK_n__ and __GLOSSARY_n__ unchanged.',
+                        `- ${digitsRule}`,
+                        `- If text contains the separator ${TranslatorApp.constants.CONTEXT_SEPARATOR}, translate each segment and preserve the separator exactly.`,
+                        '- Keep the order of choices unchanged.',
+                        '- Output in Arabic (MSA), formal tone.'
                     ].join('\n');
                     return `${base}\n\n${core}`;
                 },
