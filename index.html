@@ -1061,6 +1061,38 @@
                             console.error('Drag over error:', error);
                         }
                     });
+                    this.dom.previewContainer.addEventListener('keydown', (e) => {
+                        try {
+                            const isEditable = e.target.closest('.editable-preview-field');
+                            if (!isEditable) return;
+                    
+                            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'm') {
+                                e.preventDefault();
+                                const selection = window.getSelection();
+                                if (!selection.rangeCount) return;
+                                const range = selection.getRangeAt(0);
+                                
+                                // Create a new math-field element
+                                const newMathField = document.createElement('math-field');
+                                newMathField.setAttribute('default-mode', 'inline-math');
+                                newMathField.setAttribute('value', '');
+                                newMathField.setAttribute('virtual-keyboard-mode', 'onfocus');
+                                newMathField.setAttribute('use-shared-virtual-keyboard', '');
+                                newMathField.setAttribute('dir', 'ltr');
+                                
+                                // Insert the new math field
+                                range.insertNode(newMathField);
+                                
+                                // Focus the cursor inside the new math field
+                                newMathField.focus();
+                    
+                                TranslatorApp.preview.handlePreviewFieldUpdate(isEditable);
+                            }
+                        } catch (error) {
+                            console.error('Math field shortcut error:', error);
+                        }
+                    }, true); // Use `true` for capture phase to ensure it runs before other handlers
+                    
                     this.dom.fileUpload.addEventListener('dragleave', (e) => {
                         try {
                             this.events.onDragLeave(e);
@@ -3414,6 +3446,7 @@
                     e.clipboardData.setData('text/html', html);
                     e.clipboardData.setData('text/plain', text);
                     e.preventDefault();
+                    
                 },
 
                 handlePasteEvent(e) {
@@ -3489,16 +3522,17 @@
                         }
                         range.insertNode(finalFragment);
                         selection.collapseToEnd();
-                
+                        
                         const fieldContainer = e.target.closest('.editable-preview-field');
                         if (fieldContainer) {
                             this.handlePreviewFieldUpdate(fieldContainer);
                         }
                     } catch (error) {
                         console.error('Paste event error:', error);
-                        TranslatorApp.ui.showAlert('فشل في لصق المحتوى.', 'error');
+                        TranslatorApp.ui.showAlert('Paste failed. Plain text copied instead.', 'error');
                         document.execCommand('insertText', false, e.clipboardData.getData('text/plain'));
                     }
+                    
                 },      
 
                 // Convert plain chemical formulas (e.g., NaHCO3, H2SO4, Ca(OH)2) into inline math-fields
