@@ -3442,7 +3442,26 @@
                                         mf.setAttribute('virtual-keyboard-mode', 'onfocus');
                                         mf.setAttribute('use-shared-virtual-keyboard', '');
                                         mf.setAttribute('dir', 'ltr'); // LaTeX is always LTR
-                                        fragment.appendChild(mf);
+                                        // Create a container for the math field and the delete button
+                                        const container = document.createElement('span');
+                                        container.className = 'math-field-container'; // Add a class for styling/targeting
+                                        
+                                        const deleteBtn = document.createElement('button');
+                                        deleteBtn.className = 'math-field-delete-btn';
+                                        deleteBtn.textContent = '×';
+                                        deleteBtn.title = 'حذف المعادلة';
+                                        deleteBtn.onclick = (event) => {
+                                            event.stopPropagation();
+                                            const fieldContainer = mf.closest('.editable-preview-field');
+                                            mf.remove();
+                                            if (fieldContainer) {
+                                                TranslatorApp.preview.handlePreviewFieldUpdate(fieldContainer);
+                                            }
+                                        };
+                                        
+                                        container.appendChild(mf);
+                                        container.appendChild(deleteBtn);
+                                        fragment.appendChild(container); // Append the container instead of the math-field directly
                                     } else if (part.startsWith('$') && part.endsWith('$')) {
                                         const latex = part.slice(1, -1);
                                         const mf = document.createElement('math-field');
@@ -3451,7 +3470,24 @@
                                         mf.setAttribute('virtual-keyboard-mode', 'onfocus');
                                         mf.setAttribute('use-shared-virtual-keyboard', '');
                                         mf.setAttribute('dir', 'ltr'); // LaTeX is always LTR
-                                        fragment.appendChild(mf);
+                                        const container = document.createElement('span');
+                                        container.className = 'math-field-container'; // Add a class for styling/targeting
+                                        
+                                        const deleteBtn = document.createElement('button');
+                                        deleteBtn.className = 'math-field-delete-btn';
+                                        deleteBtn.textContent = '×';
+                                        deleteBtn.title = 'حذف المعادلة';
+                                        deleteBtn.onclick = (event) => {
+                                            event.stopPropagation();
+                                            const fieldContainer = mf.closest('.editable-preview-field');
+                                            mf.remove();
+                                            if (fieldContainer) {
+                                                TranslatorApp.preview.handlePreviewFieldUpdate(fieldContainer);
+                                            }
+                                        };
+                                        container.appendChild(mf);
+                                        container.appendChild(deleteBtn);
+                                        fragment.appendChild(container); // Append the container instead of the math-field directly
                                     } else {
                                         fragment.appendChild(document.createTextNode(part));
                                     }
