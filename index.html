@@ -222,8 +222,8 @@
             transition: opacity 0.2s, visibility 0.2s;
             z-index: 10;
         }
-
-        math-field:hover .math-field-delete-btn {
+        math-field:hover .math-field-delete-btn,
+        math-field:focus-within .math-field-delete-btn {
             opacity: 1;
             visibility: visible;
         }
@@ -3436,12 +3436,27 @@
                                 parts.forEach(part => {
                                     if (part.startsWith('$$') && part.endsWith('$$')) {
                                         const latex = part.slice(1, -1);
+
+                                        // This is inside the parts.forEach loop, for math expressions
+                                        // ...
+                                        // Create a wrapper for both the math field and the delete button
+                                        const wrapper = document.createElement('span');
+                                        wrapper.style.position = 'relative'; // Make the wrapper the positioning context
+                                        wrapper.style.display = 'inline-block'; // Ensure the wrapper behaves correctly
+                                        wrapper.style.margin = '0 5px'; // Add some margin for spacing
                                         const mf = document.createElement('math-field');
                                         mf.setAttribute('default-mode', 'inline-math');
                                         mf.setAttribute('value', latex);
                                         mf.setAttribute('virtual-keyboard-mode', 'onfocus');
                                         mf.setAttribute('use-shared-virtual-keyboard', '');
                                         mf.setAttribute('dir', 'ltr');
+                                        mf.addEventListener('input', () => {
+                                            // Re-trigger the update logic whenever the math field changes
+                                            const fieldContainer = mf.closest('.editable-preview-field');
+                                            if (fieldContainer) {
+                                                TranslatorApp.preview.handlePreviewFieldUpdate(fieldContainer);
+                                            }
+                                        });
 
                                         // Create the delete button
                                         const deleteBtn = document.createElement('button');
@@ -3451,14 +3466,16 @@
                                         deleteBtn.onclick = (event) => {
                                             event.stopPropagation();
                                             const fieldContainer = mf.closest('.editable-preview-field');
-                                            mf.remove();
+                                            wrapper.remove(); // Remove the entire wrapper
                                             if (fieldContainer) {
                                                 TranslatorApp.preview.handlePreviewFieldUpdate(fieldContainer);
                                             }
                                         };
                                         // Append the button as a child of the math-field element itself
-                                        mf.appendChild(deleteBtn);
-                                        fragment.appendChild(mf);
+                                        // Append the elements
+                                        wrapper.appendChild(mf);
+                                        wrapper.appendChild(deleteBtn);
+                                        fragment.appendChild(wrapper);
                                     } else {
                                         fragment.appendChild(document.createTextNode(part));
                                     }
