@@ -3975,10 +3975,15 @@
                                 });
 
                                 // **IMPROVEMENT**: Render gap_text_keys for translation
-                                part.gap_text_keys?.forEach((keyItem, keyIndex) => {
-                                    const originalKeyItem = originalPart.gap_text_keys[keyIndex];
-                                    html += renderField(`كلمة الفراغ ${keyIndex + 1}`, originalKeyItem.value, keyItem.value, `parts.${partIndex}.gap_text_keys.${keyIndex}.value`);
-                                });
+                                if (part.gap_text_keys) {
+                                    // Sort the keys based on the correct_order property
+                                    const sortedGapTextKeys = [...part.gap_text_keys].sort((a, b) => a.correct_order - b.correct_order);
+                                
+                                    sortedGapTextKeys.forEach((keyItem, keyIndex) => {
+                                        const originalKeyItem = originalPart.gap_text_keys.find(item => item.value === keyItem.value);
+                                        html += renderField(`كلمة الفراغ ${keyItem.correct_order}`, originalKeyItem.value, keyItem.value, `parts.${partIndex}.gap_text_keys.${part.gap_text_keys.indexOf(keyItem)}.value`);
+                                    });
+                                }
 
                                 html += '</div>';
                             } catch (partError) {
