@@ -3407,15 +3407,14 @@
                         if (typeof htmlString !== 'string' || !htmlString) {
                             return '<div class="content-root" dir="rtl">&nbsp;</div>';
                         }
-
                         const cleanedHtml = htmlString.replace(/R\s*(\d+)/g, 'والباقي $1');
 
                         // 1. Sanitize the incoming HTML first
-                        let sanitizedHtml = TranslatorApp.security.sanitize(htmlString);
+                        let sanitizedHtml = TranslatorApp.security.sanitize(cleanedHtml); // use cleanedHtml here
                         // 2. Create a temporary DOM element to parse the sanitized HTML
                         const tempDiv = document.createElement('div');
                         tempDiv.innerHTML = sanitizedHtml;
-
+                
                         // 3. Use a TreeWalker to process all nodes and convert LaTeX
                         const walker = document.createTreeWalker(
                             tempDiv,
@@ -3429,54 +3428,54 @@
                             let textContent = node.textContent;
 
                             // Find and replace LaTeX expressions
-                            const latexRegex = /(\$\$[\s\S]*?\$\$|\$[\s\S]*?\$)/g;
+                            const latexRegex = /(\$\$[\s\S]*?\$\$|\$[^$]*\$)/g;
                             const parts = textContent.split(latexRegex);
+                
                             if (parts.length > 1) {
                                 const fragment = document.createDocumentFragment();
                                 parts.forEach(part => {
-                                    if (part.startsWith('$$') && part.endsWith('$$')) {
-                                        const latex = part.slice(1, -1);
+                                    const isDisplayMode = part.startsWith('$$') && part.endsWith('$$');
+                                    const isInlineMode = part.startsWith('$') && part.endsWith('$');
+                
+                                    if (isDisplayMode || isInlineMode) {
+                                        const latex = part.slice(isDisplayMode ? 2 : 1, isDisplayMode ? -2 : -1);
 
-                                        // This is inside the parts.forEach loop, for math expressions
-                                        // ...
-                                        // Create a wrapper for both the math field and the delete button
+                                        // Create the container for the math field and the button
                                         const wrapper = document.createElement('span');
-                                        wrapper.style.position = 'relative'; // Make the wrapper the positioning context
-                                        wrapper.style.display = 'inline-block'; // Ensure the wrapper behaves correctly
-                                        wrapper.style.margin = '0 5px'; // Add some margin for spacing
+                                        wrapper.style.position = 'relative';
+                                        wrapper.style.display = 'inline-block';
+                                        wrapper.style.margin = '0 5px';
+                                        
                                         const mf = document.createElement('math-field');
-                                        mf.setAttribute('default-mode', 'inline-math');
+                                        mf.setAttribute('default-mode', isDisplayMode ? 'math' : 'inline-math');
                                         mf.setAttribute('value', latex);
                                         mf.setAttribute('virtual-keyboard-mode', 'onfocus');
                                         mf.setAttribute('use-shared-virtual-keyboard', '');
                                         mf.setAttribute('dir', 'ltr');
                                         mf.addEventListener('input', () => {
-                                            // Re-trigger the update logic whenever the math field changes
                                             const fieldContainer = mf.closest('.editable-preview-field');
                                             if (fieldContainer) {
                                                 TranslatorApp.preview.handlePreviewFieldUpdate(fieldContainer);
                                             }
                                         });
-
-                                        // Create the delete button
+                                        // Create the delete button and append it to the wrapper
                                         const deleteBtn = document.createElement('button');
                                         deleteBtn.className = 'math-field-delete-btn';
                                         deleteBtn.textContent = '×';
                                         deleteBtn.title = 'حذف المعادلة';
                                         deleteBtn.onclick = (event) => {
                                             event.stopPropagation();
-                                            const fieldContainer = mf.closest('.editable-preview-field');
-                                            wrapper.remove(); // Remove the entire wrapper
+                                            const fieldContainer = wrapper.closest('.editable-preview-field');
+                                            wrapper.remove();
                                             if (fieldContainer) {
                                                 TranslatorApp.preview.handlePreviewFieldUpdate(fieldContainer);
                                             }
                                         };
-                                        // Append the button as a child of the math-field element itself
-                                        // Append the elements
+                                        // Append the elements to the wrapper
                                         wrapper.appendChild(mf);
                                         wrapper.appendChild(deleteBtn);
                                         fragment.appendChild(wrapper);
-                                    } else {
+                                    } else if (part) {
                                         fragment.appendChild(document.createTextNode(part));
                                     }
                                 });
@@ -3501,7 +3500,7 @@
                         return '<div class="content-root" dir="rtl">فشل في عرض المحتوى</div>';
                     }
                 },
-
+                    
                 handleCopyEvent(e) {
                     const selection = window.getSelection();
                     if (!selection.rangeCount) return;
