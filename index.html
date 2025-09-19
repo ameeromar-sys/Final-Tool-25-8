@@ -3039,24 +3039,7 @@
                             }
                             part.choices?.forEach((choice, choiceIndex) => {
                                 processField(choice.html_content, { fileIndex, partIndex, choiceIndex, key: 'choice' });
-                                processGapTextKeys(part.gap_text_keys, { fileIndex, partIndex });
                             });
-                            const processGapTextKeys = (keysArray, basePointer) => {
-                                if (!Array.isArray(keysArray) || keysArray.length === 0) return;
-                                keysArray.forEach((keyItem, keyIndex) => {
-                                    if (keyItem && typeof keyItem.value === 'string') {
-                                        const htmlString = keyItem.value; // Here the key value is the string to translate
-                                        const pointer = { ...basePointer, key: 'gap_text_keys', keyIndex };
-                                        
-                                        const { jobs, parsedBody } = this.utils.parseHtmlAndCreateJobs(htmlString, pointer);
-                                        jobs.forEach(job => job.pointer = pointer); // Ensure correct pointer for each job
-                                        allJobs.push(...jobs);
-                            
-                                        const mapKey = JSON.stringify(pointer);
-                                        parsedDataMap.set(mapKey, parsedBody);
-                                    }
-                                });
-                            };
                         });
                     });
 
@@ -4012,12 +3995,11 @@
                                 // **IMPROVEMENT**: Render gap_text_keys for translation
                                 if (originalPart.gap_text_keys) {
                                     const sortedOriginalKeys = [...originalPart.gap_text_keys].sort((a, b) => a.correct_order - b.correct_order);
-                                    const translatedPart = data.parts[partIndex]; // Use the translated part from data
-                                    const sortedTranslatedKeys = translatedPart.gap_text_keys ? [...translatedPart.gap_text_keys].sort((a, b) => a.correct_order - b.correct_order) : [];
+                                    const sortedTranslatedKeys = [...(part.gap_text_keys || [])].sort((a, b) => a.correct_order - b.correct_order);
                                 
                                     sortedOriginalKeys.forEach((originalKeyItem, index) => {
-                                        const translatedKeyItem = sortedTranslatedKeys[index] || { value: '' }; // Get the corresponding translated item
-                                        const path = `parts.${partIndex}.gap_text_keys.${index}.value`; // The path should use the sorted index for consistency
+                                        const translatedKeyItem = sortedTranslatedKeys[index] || { value: '' }; // Use an empty string if no translation exists
+                                        const path = `parts.${partIndex}.gap_text_keys.${originalPart.gap_text_keys.findIndex(item => item.value === originalKeyItem.value)}.value`;
                                 
                                         html += `<div class="border rounded-lg p-4" style="border-color: var(--card-border);">
                                             <div class="flex justify-between items-center mb-2">
