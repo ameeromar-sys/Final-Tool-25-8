@@ -3995,21 +3995,35 @@
                                 // **IMPROVEMENT**: Render gap_text_keys for translation
                                 if (originalPart.gap_text_keys) {
                                     const sortedOriginalKeys = [...originalPart.gap_text_keys].sort((a, b) => a.correct_order - b.correct_order);
-                                    const sortedTranslatedKeys = [...part.gap_text_keys].sort((a, b) => a.correct_order - b.correct_order);
+                                    const sortedTranslatedKeys = [...(part.gap_text_keys || [])].sort((a, b) => a.correct_order - b.correct_order);
                                 
                                     sortedOriginalKeys.forEach((originalKeyItem, index) => {
-                                        const translatedKeyItem = sortedTranslatedKeys[index];
+                                        const translatedKeyItem = sortedTranslatedKeys[index] || { value: '' }; // Use an empty string if no translation exists
                                         const path = `parts.${partIndex}.gap_text_keys.${originalPart.gap_text_keys.indexOf(originalKeyItem)}.value`;
                                         
-                                        // Pass the translated value to the renderField function.
-                                        // It will be placed in the editable div with dir="rtl".
-                                        // The original value will be displayed in its own div with dir="ltr".
-                                        html += renderField(
-                                            `كلمة الفراغ ${originalKeyItem.correct_order}`,
-                                            originalKeyItem.value,
-                                            translatedKeyItem.value,
-                                            path
-                                        );
+                                        // Use separate rendering logic for original and translated to ensure correct directionality
+                                        html += `<div class="border rounded-lg p-4" style="border-color: var(--card-border);">
+                                            <div class="flex justify-between items-center mb-2">
+                                                <h5 class="font-bold flex items-center">كلمة الفراغ ${originalKeyItem.correct_order}</h5>
+                                            </div>
+                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    <p class="text-sm font-semibold mb-1" style="color: var(--secondary-text);">الأصلي</p>
+                                                    <div class="p-3 rounded-lg text-sm h-full" dir="ltr" style="background-color: var(--bg-color); color: var(--secondary-text);">${TranslatorApp.security.sanitize(originalKeyItem.value)}</div>
+                                                </div>
+                                                <div>
+                                                    <p class="text-sm font-semibold mb-1" style="color: var(--success-color);">المترجم (قابل للتعديل)</p>
+                                                    <div id="field-${fileIndex}-${path.replace(/\./g, '-')}"
+                                                        contenteditable="true"
+                                                        class="editable-preview-field"
+                                                        data-path="${path}"
+                                                        data-file-index="${fileIndex}"
+                                                        dir="rtl">
+                                                        ${TranslatorApp.preview.renderContentWithMath(translatedKeyItem.value)}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>`;
                                     });
                                 }
 
