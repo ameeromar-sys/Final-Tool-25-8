@@ -3999,9 +3999,8 @@
                                 
                                     sortedOriginalKeys.forEach((originalKeyItem, index) => {
                                         const translatedKeyItem = sortedTranslatedKeys[index] || { value: '' }; // Use an empty string if no translation exists
-                                        const path = `parts.${partIndex}.gap_text_keys.${originalPart.gap_text_keys.indexOf(originalKeyItem)}.value`;
-                                        
-                                        // Use separate rendering logic for original and translated to ensure correct directionality
+                                        const path = `parts.${partIndex}.gap_text_keys.${originalPart.gap_text_keys.findIndex(item => item.value === originalKeyItem.value)}.value`;
+                                
                                         html += `<div class="border rounded-lg p-4" style="border-color: var(--card-border);">
                                             <div class="flex justify-between items-center mb-2">
                                                 <h5 class="font-bold flex items-center">كلمة الفراغ ${originalKeyItem.correct_order}</h5>
@@ -4019,7 +4018,7 @@
                                                         data-path="${path}"
                                                         data-file-index="${fileIndex}"
                                                         dir="rtl">
-                                                        ${TranslatorApp.preview.renderContentWithMath(translatedKeyItem.value)}
+                                                        ${TranslatorApp.security.sanitize(translatedKeyItem.value)}
                                                     </div>
                                                 </div>
                                             </div>
