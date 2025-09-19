@@ -3875,6 +3875,20 @@
                     }
                 },
 
+                renderReadOnlyLTRField(label, value) {
+                    if (value === undefined || value === null) return '';
+                    const displayValue = Array.isArray(value) ? value.join(', ') : String(value);
+                
+                    return `
+                    <div class="border rounded-lg p-4" style="border-color: var(--card-border);">
+                        <h5 class="font-bold flex items-center mb-2">${TranslatorApp.security.sanitize(label)}</h5>
+                        <div>
+                            <p class="text-sm font-semibold mb-1" style="color: var(--secondary-text);">الأصلي</p>
+                            <div class="p-3 rounded-lg text-sm h-full" dir="ltr" style="background-color: var(--bg-color); color: var(--secondary-text);">${TranslatorApp.security.sanitize(displayValue)}</div>
+                        </div>
+                    </div>`;
+                }
+
                 renderFileContent(data, fileIndex) {
                     try {
                         let html = '<div class="space-y-6">';
@@ -3975,13 +3989,12 @@
                                 });
 
                                 // **IMPROVEMENT**: Render gap_text_keys for translation
-                                if (part.gap_text_keys) {
+                                if (originalPart.gap_text_keys) {
                                     // Sort the keys based on the correct_order property
-                                    const sortedGapTextKeys = [...part.gap_text_keys].sort((a, b) => a.correct_order - b.correct_order);
-                                
-                                    sortedGapTextKeys.forEach((keyItem, keyIndex) => {
-                                        const originalKeyItem = originalPart.gap_text_keys.find(item => item.value === keyItem.value);
-                                        html += renderField(`كلمة الفراغ ${keyItem.correct_order}`, originalKeyItem.value, keyItem.value, `parts.${partIndex}.gap_text_keys.${part.gap_text_keys.indexOf(keyItem)}.value`);
+                                    const sortedGapTextKeys = [...originalPart.gap_text_keys].sort((a, b) => a.correct_order - b.correct_order);
+                                    sortedGapTextKeys.forEach((keyItem) => {
+                                        // We render the original value with LTR direction explicitly
+                                        html += this.renderReadOnlyLTRField(`كلمة الفراغ ${keyItem.correct_order}`, keyItem.value, keyItem.value, `parts.${partIndex}.gap_text_keys.${originalPart.gap_text_keys.indexOf(keyItem)}.value`);
                                     });
                                 }
 
