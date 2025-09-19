@@ -3844,37 +3844,41 @@
                         if (originalValue === undefined || originalValue === null) return '';
                         const displayOriginalValue = Array.isArray(originalValue) ? originalValue.join(', ') : String(originalValue);
                         const displayTranslatedValue = Array.isArray(translatedValue) ? translatedValue.join(', ') : String(translatedValue);
-                        // New check for numeric values
-                        const isNumeric = !isNaN(parseFloat(displayOriginalValue)) && isFinite(displayOriginalValue);
-                        const dirAttr = isNumeric ? 'ltr' : 'rtl'; // Force LTR for numbers
-
-                        const enhancedOriginal = isNumeric ? displayOriginalValue : TranslatorApp.utils.textDirection.enhancePreviewContent(displayOriginalValue);
-                        const enhancedTranslated = isNumeric ? displayTranslatedValue : TranslatorApp.utils.textDirection.enhancePreviewContent(displayTranslatedValue);
-
+                        
+                        // This is a new check for numeric values to determine direction, but it's not applied correctly.
+                        // const isNumeric = !isNaN(parseFloat(displayOriginalValue)) && isFinite(displayOriginalValue);
+                        // const dirAttr = isNumeric ? 'ltr' : 'rtl'; 
+                        
+                        // Let's assume the original values are always English and force LTR for them.
+                        const originalDir = 'ltr'; 
+                
+                        const enhancedOriginal = TranslatorApp.utils.textDirection.enhancePreviewContent(displayOriginalValue);
+                        const enhancedTranslated = TranslatorApp.utils.textDirection.enhancePreviewContent(displayTranslatedValue);
+                
                         return `
                             <div class="border rounded-lg p-4" style="border-color: var(--card-border);">
                                 <h5 class="font-bold flex items-center mb-2">${TranslatorApp.security.sanitize(label)}</h5>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <p class="text-sm font-semibold mb-1" style="color: var(--secondary-text);">الأصلي</p>
-                                        <div class="p-3 rounded-lg text-sm h-full" dir="${dirAttr}" style="background-color: var(--bg-color); color: var(--secondary-text);">${enhancedOriginal}</div>
+                                        <div class="p-3 rounded-lg text-sm h-full" dir="${originalDir}" style="background-color: var(--bg-color); color: var(--secondary-text);">${enhancedOriginal}</div>
                                     </div>
                                     <div>
-                                        <p class="text-sm font-semibold mb-1" style="color: var(--success-color);">المترجم</p>
-                                        <div class="p-3 rounded-lg text-sm h-full" dir="${dirAttr}" style="background-color: var(--bg-color); color: var(--secondary-text);">${enhancedTranslated}</div>
+                                        <p class="text-sm font-semibold mb-1" style="color: var(--success-color);">المترجم (قابل للتعديل)</p>
+                                        <div class="p-3 rounded-lg text-sm h-full" dir="rtl" style="background-color: var(--bg-color); color: var(--secondary-text);">${enhancedTranslated}</div>
                                     </div>
                                 </div>
-                            </div>`;    
+                            </div>`;
                     } catch (error) {
                         console.error('Render read only field error:', error);
                         return `
-                    <div class="border rounded-lg p-4" style="border-color: var (--card-border);">
-                        <h5 class="font-bold flex items-center mb-2">خطأ في العرض</h5>
-                        <div class="p-3 rounded-lg text-sm" style="background-color: var (--bg-color); color: var (--error-color);">فشل في عرض المحتوى</div>
-                    </div>`;
+                        <div class="border rounded-lg p-4" style="border-color: var(--card-border);">
+                            <h5 class="font-bold flex items-center mb-2">خطأ في العرض</h5>
+                            <div class="p-3 rounded-lg text-sm" style="background-color: var(--bg-color); color: var(--error-color);">فشل في عرض المحتوى</div>
+                        </div>`;
                     }
                 },
-
+                        
                 renderReadOnlyLTRField(label, value) {
                     if (value === undefined || value === null) return '';
                     const displayValue = Array.isArray(value) ? value.join(', ') : String(value);
@@ -3990,13 +3994,22 @@
 
                                 // **IMPROVEMENT**: Render gap_text_keys for translation
                                 if (originalPart.gap_text_keys) {
-                                    // Sort the keys based on the correct_order property
-                                    const sortedGapTextKeys = [...originalPart.gap_text_keys].sort((a, b) => a.correct_order - b.correct_order);
+                                    const sortedOriginalKeys = [...originalPart.gap_text_keys].sort((a, b) => a.correct_order - b.correct_order);
+                                    const sortedTranslatedKeys = [...part.gap_text_keys].sort((a, b) => a.correct_order - b.correct_order);
                                 
-                                    sortedGapTextKeys.forEach((keyItem) => {
-                                        const originalKeyItem = originalPart.gap_text_keys.find(item => item.value === keyItem.value);
-                                        // We render the original value with LTR direction explicitly
-                                        html += renderField(`كلمة الفراغ ${keyItem.correct_order}`, originalKeyItem.value, keyItem.value, `parts.${partIndex}.gap_text_keys.${originalPart.gap_text_keys.indexOf(keyItem)}.value`, 'rtl');
+                                    sortedOriginalKeys.forEach((originalKeyItem, index) => {
+                                        const translatedKeyItem = sortedTranslatedKeys[index];
+                                        const path = `parts.${partIndex}.gap_text_keys.${originalPart.gap_text_keys.indexOf(originalKeyItem)}.value`;
+                                        
+                                        // Pass the translated value to the renderField function.
+                                        // It will be placed in the editable div with dir="rtl".
+                                        // The original value will be displayed in its own div with dir="ltr".
+                                        html += renderField(
+                                            `كلمة الفراغ ${originalKeyItem.correct_order}`,
+                                            originalKeyItem.value,
+                                            translatedKeyItem.value,
+                                            path
+                                        );
                                     });
                                 }
 
