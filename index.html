@@ -2104,6 +2104,22 @@
                     return text.replace(/\\alt{\\alef}\\prime/g, '')
                                .replace(/\\lam/g, 'والباقي ');
                 },
+                unitsMap: {
+                    'pounds': 'جنيه',
+                    'pound': 'جنيه',
+                    'cm': 'سم',
+                    'mm': 'مم',
+                    'km': 'كم',
+                    'm': 'م',
+                    'kg': 'كجم',
+                    'g': 'جم',
+                    'l': 'ل',
+                    'L': 'ل',
+                    'ml': 'مل',
+                    's': 'ث',
+                    'min': 'د',
+                    'h': 'س'
+                },
                 protectSegments(text) {
                     const placeholders = {};
                     let idx = 0;
@@ -3942,18 +3958,15 @@
                         </div>`;
                     }
                 },
-                renderInputField(label, originalValue, translatedValue, originalUnit, translatedUnit, path) {
+                renderInputField(label, originalValue, translatedValue, originalUnit, translatedUnit, path, fileIndex) {
                     if (originalValue === undefined || originalValue === null) return '';
-                    
+                
                     const fieldId = `field-${fileIndex}-${path.replace(/\./g, '-')}`;
                     const statusId = `status-${fieldId}`;
                 
-                    // Get the original and translated text direction for proper rendering
-                    const originalTextDir = 'ltr';
-                    const translatedTextDir = 'rtl';
-                    const originalUnitDir = 'ltr';
-                    const translatedUnitDir = 'rtl';
-                    
+                    // Use a translation map for the unit
+                    const translatedUnitText = TranslatorApp.quality.unitsMap[originalUnit.toLowerCase()] || originalUnit;
+                
                     return `
                         <div class="border rounded-lg p-4" style="border-color: var(--card-border);">
                             <div class="flex justify-between items-center mb-2">
@@ -3966,21 +3979,20 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <p class="text-sm font-semibold mb-1" style="color: var(--secondary-text);">الأصلي</p>
-                                    <div class="original-text-readonly p-3 rounded-lg text-sm h-full flex" style="background-color: var(--bg-color); color: var(--secondary-text); overflow:auto;">
-                                        <span dir="${originalTextDir}" class="flex-grow">${TranslatorApp.security.sanitize(originalValue)}</span>
-                                        <span dir="${originalUnitDir}" class="flex-shrink-0 mr-2">${TranslatorApp.security.sanitize(originalUnit)}</span>
+                                    <div class="original-text-readonly p-3 rounded-lg text-sm h-full flex items-center justify-end" style="background-color: var(--bg-color); color: var(--secondary-text); overflow:auto;">
+                                        <span dir="ltr">${TranslatorApp.security.sanitize(originalValue)}</span>
+                                        <span dir="ltr" class="mr-2">${TranslatorApp.security.sanitize(originalUnit)}</span>
                                     </div>
                                 </div>
                                 <div>
                                     <p class="text-sm font-semibold mb-1" style="color: var(--success-color);">المترجم (قابل للتعديل)</p>
                                     <div id="${fieldId}" 
-                                        contenteditable="true"
-                                        class="editable-preview-field flex"
+                                        class="editable-preview-field flex items-center justify-end"
                                         data-path="${path}"
                                         data-file-index="${fileIndex}"
                                         dir="rtl">
-                                        <span dir="${translatedTextDir}" class="flex-grow">${this.renderContentWithMath(translatedValue)}</span>
-                                        <span dir="${translatedUnitDir}" contenteditable="true" class="flex-shrink-0 mr-2 editable-unit">${TranslatorApp.security.sanitize(translatedUnit)}</span>
+                                        <span contenteditable="true" dir="ltr" class="flex-grow text-right">${TranslatorApp.security.sanitize(translatedValue)}</span>
+                                        <span contenteditable="true" dir="rtl" class="flex-shrink-0 mr-2 editable-unit">${TranslatorApp.security.sanitize(translatedUnitText)}</span>
                                     </div>
                                 </div>
                             </div>
@@ -3990,7 +4002,7 @@
                             </div>
                         </div>
                     `;
-                },
+                }
                         
                 renderReadOnlyLTRField(label, value) {
                     if (value === undefined || value === null) return '';
