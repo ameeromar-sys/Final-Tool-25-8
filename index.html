@@ -1062,6 +1062,23 @@
 
             bindEvents() {
                 try {
+                    this.dom.previewContainer.addEventListener('input', (e) => {
+                        try {
+                            if (e.target.classList.contains('editable-unit')) {
+                                const fieldContainer = e.target.closest('.editable-preview-field');
+                                if (fieldContainer) {
+                                    this.preview.handleUnitUpdate(fieldContainer, e.target.textContent);
+                                }
+                            } else {
+                                const fieldContainer = e.target.closest('.editable-preview-field');
+                                if (fieldContainer) {
+                                    this.preview.handlePreviewFieldUpdate(fieldContainer);
+                                }
+                            }
+                        } catch (error) {
+                            console.error('Preview input event error:', error);
+                        }
+                    });
                     this.dom.previewContainer.addEventListener('keydown', (e) => {
                         // ...existing code for Ctrl+M shortcut...
 
@@ -3742,6 +3759,43 @@
                     }
                 },
 
+                handleUnitUpdate(fieldContainer, newUnitValue) {
+                    try {
+                        if (!fieldContainer) return;
+                
+                        const path = fieldContainer.dataset.path;
+                        const fileIndex = parseInt(fieldContainer.dataset.fileIndex, 10);
+                        if (!path || isNaN(fileIndex)) {
+                            console.warn('Invalid field container data for unit update:', { path, fileIndex });
+                            return;
+                        }
+                
+                        const keys = path.split('.');
+                        const unitPath = keys.slice(0, keys.length - 1).join('.') + '.unit'; // Construct the path to the unit property
+                        this.updateData(fileIndex, unitPath, newUnitValue);
+                
+                        // Update the diff view for the unit
+                        const originalValue = this.getDataByPath(TranslatorApp.state.originalJsonData[fileIndex].data, unitPath);
+                        const diffId = `diff-field-${fileIndex}-${unitPath.replace(/\./g, '-')}`;
+                        const diffContainer = document.getElementById(diffId);
+                        if (diffContainer) {
+                            diffContainer.innerHTML = this.createDiffHtml(originalValue || '', newUnitValue);
+                        }
+                
+                        const statusEl = document.getElementById(`status-field-${fileIndex}-${path.replace(/\./g, '-')}`);
+                        if (statusEl) {
+                            statusEl.className = 'status-dot status-edited';
+                            statusEl.title = 'تم التعديل يدوياً';
+                        }
+                
+                        TranslatorApp.history.push(TranslatorApp.state.translatedJsonData);
+                        TranslatorApp.state.hasUnsavedChanges = true;
+                    } catch (error) {
+                        console.error('Handle unit update error:', error);
+                        TranslatorApp.ui.showAlert('فشل في تحديث وحدة الإجابة.', 'error');
+                    }
+                },
+
                 handlePreviewFieldUpdate(fieldContainer) {
                     try {
                         if (!fieldContainer) return;
@@ -3880,6 +3934,55 @@
                         </div>`;
                     }
                 },
+                renderInputField(label, originalValue, translatedValue, originalUnit, translatedUnit, path) {
+                    if (originalValue === undefined || originalValue === null) return '';
+                    
+                    const fieldId = `field-${fileIndex}-${path.replace(/\./g, '-')}`;
+                    const statusId = `status-${fieldId}`;
+                
+                    // Get the original and translated text direction for proper rendering
+                    const originalTextDir = 'ltr';
+                    const translatedTextDir = 'rtl';
+                    const originalUnitDir = 'ltr';
+                    const translatedUnitDir = 'rtl';
+                    
+                    return `
+                        <div class="border rounded-lg p-4" style="border-color: var(--card-border);">
+                            <div class="flex justify-between items-center mb-2">
+                                <h5 class="font-bold flex items-center">${TranslatorApp.security.sanitize(label)} <span id="${statusId}" class="status-dot status-translated" title="تمت الترجمة"></span></h5>
+                                <div class="flex gap-2">
+                                    <button class="text-xs font-semibold py-1 px-2 rounded" onclick="TranslatorApp.preview.copyOriginalText(this)">نسخ الأصلي</button>
+                                    <button class="text-xs font-semibold py-1 px-2 rounded" onclick="document.getElementById('diff-field-${fileIndex}-${path.replace(/\./g, '-')}').parentNode.classList.toggle('hidden')">عرض/إخفاء الفروقات</button>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <p class="text-sm font-semibold mb-1" style="color: var(--secondary-text);">الأصلي</p>
+                                    <div class="original-text-readonly p-3 rounded-lg text-sm h-full flex" style="background-color: var(--bg-color); color: var(--secondary-text); overflow:auto;">
+                                        <span dir="${originalTextDir}" class="flex-grow">${TranslatorApp.security.sanitize(originalValue)}</span>
+                                        <span dir="${originalUnitDir}" class="flex-shrink-0 mr-2">${TranslatorApp.security.sanitize(originalUnit)}</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-semibold mb-1" style="color: var(--success-color);">المترجم (قابل للتعديل)</p>
+                                    <div id="${fieldId}" 
+                                        contenteditable="true"
+                                        class="editable-preview-field flex"
+                                        data-path="${path}"
+                                        data-file-index="${fileIndex}"
+                                        dir="rtl">
+                                        <span dir="${translatedTextDir}" class="flex-grow">${this.renderContentWithMath(translatedValue)}</span>
+                                        <span dir="${translatedUnitDir}" contenteditable="true" class="flex-shrink-0 mr-2 editable-unit">${TranslatorApp.security.sanitize(translatedUnit)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-4 hidden">
+                                <p class="text-sm font-semibold mb-1" style="color: var(--secondary-text);">مقارنة الفروقات</p>
+                                <div id="diff-field-${fileIndex}-${path.replace(/\./g, '-')}" class="diff-view"></div>
+                            </div>
+                        </div>
+                    `;
+                },
                         
                 renderReadOnlyLTRField(label, value) {
                     if (value === undefined || value === null) return '';
@@ -3965,8 +4068,10 @@
                                 if (originalPart.answer) {
                                     if (part.type === 'input_box' && typeof originalPart.answer === 'object' && originalPart.answer.hasOwnProperty('value')) {
                                         const originalValue = originalPart.answer.value;
+                                        const originalUnit = originalPart.answer.unit || '';
                                         const translatedValue = part.answer.value;
-                                        html += this.renderReadOnlyField('الإجابة (Answer)', originalValue, translatedValue);
+                                        const translatedUnit = part.answer.unit || ''; // Assuming the unit is kept the same for now, but will be editable
+                                        html += this.renderInputField('الإجابة (Answer)', originalValue, translatedValue, originalUnit, translatedUnit, `parts.${partIndex}.answer.value`);
                                     } else if (Array.isArray(originalPart.answer)) {
                                        html += renderField('الإجابة (Answer)', originalPart.answer, part.answer, `parts.${partIndex}.answer`);
                                     } else if (typeof originalPart.answer === 'string') {
