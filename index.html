@@ -3900,82 +3900,74 @@
                         let html = '<div class="space-y-6">';
                         const renderField = (label, originalValue, translatedValue, path, editableDir = 'rtl') => {
                             try {
-                                // Return an empty string if there's no content to render
                                 if (originalValue === undefined || originalValue === null || (Array.isArray(originalValue) && originalValue.length === 0)) {
                                     return '';
                                 }
                                 const fieldId = `field-${fileIndex}-${path.replace(/\./g, '-')}`;
                                 const diffId = `diff-${fieldId}`;
                                 const statusId = `status-${fieldId}`;
-                
-                                // Process values for display
+                                
                                 const displayOriginalValue = (Array.isArray(originalValue) ? originalValue.join('') : String(originalValue));
                                 const displayTranslatedValue = (Array.isArray(translatedValue) ? translatedValue.join('') : String(translatedValue));
                                 
-                                // If the translated value is identical to the original, don't re-render it.
-                                // This prevents issues with non-translatable content.
                                 const finalTranslatedValue = displayTranslatedValue || displayOriginalValue;
-                
+                                
                                 return `
-
-                    <div class="border rounded-lg p-4" style="border-color: var(--card-border);">
-                        <div class="flex justify-between items-center mb-2">
-                            <h5 class="font-bold flex items-center">${TranslatorApp.security.sanitize(label)} <span id="${statusId}" class="status-dot status-translated" title="تمت الترجمة"></span></h5>
-                            <div class="flex gap-2">
-                                <button class="text-xs font-semibold py-1 px-2 rounded" onclick="TranslatorApp.preview.copyOriginalText(this)">نسخ الأصلي</button>
-                                <button class="text-xs font-semibold py-1 px-2 rounded" onclick="document.getElementById('${diffId}').parentNode.classList.toggle('hidden')">عرض/إخفاء الفروقات</button>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <p class="text-sm font-semibold mb-1" style="color: var(--secondary-text);">الأصلي</p>
-                                <div class="original-text-readonly p-3 rounded-lg text-sm h-full" style="background-color: var(--bg-color); overflow:auto;">
-                                    <div dir="auto">${this.renderContentWithMath(displayOriginalValue)}</div>
-                                </div>
-                            </div>
-                            <div>
-                                <p class="text-sm font-semibold mb-1" style="color: var(--success-color);">المترجم (قابل للتعديل)</p>
-                                <div id="${fieldId}" 
-                                     contenteditable="true"
-                                     class="editable-preview-field"
-                                     data-path="${path}"
-                                     data-file-index="${fileIndex}">
-                                     ${this.renderContentWithMath(finalTranslatedValue)}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="mt-4 hidden">
-                             <p class="text-sm font-semibold mb-1" style="color: var (--secondary-text);">مقارنة الفروقات</p>
-                            <div id="${diffId}" class="diff-view"></div>
-                        </div>
-                    </div>`;
+                                    <div class="border rounded-lg p-4" style="border-color: var(--card-border);">
+                                        <div class="flex justify-between items-center mb-2">
+                                            <h5 class="font-bold flex items-center">${TranslatorApp.security.sanitize(label)} <span id="${statusId}" class="status-dot status-translated" title="تمت الترجمة"></span></h5>
+                                            <div class="flex gap-2">
+                                                <button class="text-xs font-semibold py-1 px-2 rounded" onclick="TranslatorApp.preview.copyOriginalText(this)">نسخ الأصلي</button>
+                                                <button class="text-xs font-semibold py-1 px-2 rounded" onclick="document.getElementById('${diffId}').parentNode.classList.toggle('hidden')">عرض/إخفاء الفروقات</button>
+                                            </div>
+                                        </div>
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <p class="text-sm font-semibold mb-1" style="color: var(--secondary-text);">الأصلي</p>
+                                                <div class="original-text-readonly p-3 rounded-lg text-sm h-full" style="background-color: var(--bg-color); overflow:auto;">
+                                                    <div dir="auto">${this.renderContentWithMath(displayOriginalValue)}</div>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm font-semibold mb-1" style="color: var(--success-color);">المترجم (قابل للتعديل)</p>
+                                                <div id="${fieldId}" 
+                                                     contenteditable="true"
+                                                     class="editable-preview-field"
+                                                     data-path="${path}"
+                                                     data-file-index="${fileIndex}">
+                                                     ${this.renderContentWithMath(finalTranslatedValue)}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mt-4 hidden">
+                                             <p class="text-sm font-semibold mb-1" style="color: var (--secondary-text);">مقارنة الفروقات</p>
+                                            <div id="${diffId}" class="diff-view"></div>
+                                        </div>
+                                    </div>`;
                             } catch (fieldError) {
                                 console.warn('Error rendering field:', fieldError);
                                 return '';
                             }
                         };
-
+                
                         html += renderField('البيان (Statement)', TranslatorApp.state.originalJsonData[fileIndex].data.statement, data.statement, 'statement');
-
+                
                         data.parts?.forEach((part, partIndex) => {
                             try {
                                 const originalPart = TranslatorApp.state.originalJsonData[fileIndex].data.parts[partIndex];
                                 if (!originalPart) return;
-
+                
                                 html += '<div class="border-t pt-4 mt-4 space-y-4" style="border-color: var(--card-border);">';
                                 html += `<h5 class="font-semibold text-md" style="color: var(--secondary-text);">الجزء ${partIndex + 1} (النوع: ${part.type || 'غير محدد'})</h5>`;
-
+                
                                 html += renderField('السؤال (Stem)', originalPart.stem, part.stem, `parts.${partIndex}.stem`);
-
-                                // Correctly handle the 'answer' field whether it's a string or an array
+                
                                 if (originalPart.answer) {
                                     if (part.type === 'input_box' && typeof originalPart.answer === 'object' && originalPart.answer.hasOwnProperty('value')) {
                                         const originalValue = originalPart.answer.value;
                                         const translatedValue = part.answer.value;
-                                        // Render this field as read-only and force LTR direction
                                         html += this.renderReadOnlyField('الإجابة (Answer)', originalValue, translatedValue);
                                     } else if (Array.isArray(originalPart.answer)) {
-                                    // Join the array elements to form a single HTML string for editing
                                        html += renderField('الإجابة (Answer)', originalPart.answer, part.answer, `parts.${partIndex}.answer`);
                                     } else if (typeof originalPart.answer === 'string') {
                                          html += renderField('الإجابة (Answer)', originalPart.answer, part.answer, `parts.${partIndex}.answer`);
@@ -3984,25 +3976,24 @@
                                         const translatedValue = (part.answer && part.answer.value) || originalPart.answer.value;
                                         html += renderField('الإجابة (Answer)', originalValue, translatedValue, `parts.${partIndex}.answer.value`);
                                     } else {
-                                        // Fallback for other answer types
                                         html += this.renderReadOnlyField('الإجابة (Answer - غير قابلة للترجمة)', JSON.stringify(originalPart.answer));
                                     }
                                 }
-
+                
                                 part.choices?.forEach((choice, choiceIndex) => {
                                     const originalChoice = originalPart.choices[choiceIndex];
                                     html += renderField(`خيار ${choiceIndex + 1}`, originalChoice.html_content, choice.html_content, `parts.${partIndex}.choices.${choiceIndex}.html_content`);
                                 });
-
-                                // **IMPROVEMENT**: Render gap_text_keys for translation
+                
                                 if (originalPart.gap_text_keys) {
                                     const sortedOriginalKeys = [...originalPart.gap_text_keys].sort((a, b) => a.correct_order - b.correct_order);
-                                    const sortedTranslatedKeys = [...(part.gap_text_keys || [])].sort((a, b) => a.correct_order - b.correct_order);
-                                
+                                    const translatedPart = data.parts[partIndex];
+                                    const sortedTranslatedKeys = [...(translatedPart.gap_text_keys || [])].sort((a, b) => a.correct_order - b.correct_order);
+                
                                     sortedOriginalKeys.forEach((originalKeyItem, index) => {
-                                        const translatedKeyItem = sortedTranslatedKeys[index] || { value: '' }; // Use an empty string if no translation exists
+                                        const translatedKeyItem = sortedTranslatedKeys[index] || { value: '' };
                                         const path = `parts.${partIndex}.gap_text_keys.${originalPart.gap_text_keys.findIndex(item => item.value === originalKeyItem.value)}.value`;
-                                
+                
                                         html += `<div class="border rounded-lg p-4" style="border-color: var(--card-border);">
                                             <div class="flex justify-between items-center mb-2">
                                                 <h5 class="font-bold flex items-center">كلمة الفراغ ${originalKeyItem.correct_order}</h5>
@@ -4027,7 +4018,7 @@
                                         </div>`;
                                     });
                                 }
-
+                
                                 html += '</div>';
                             } catch (partError) {
                                 console.warn('Error rendering part:', partError);
@@ -4036,7 +4027,7 @@
                                 html += '</div>';
                             }
                         });
-
+                
                         html += '</div>';
                         return html;
                     } catch (error) {
@@ -4044,25 +4035,27 @@
                         return '<div class="space-y-6"><div class="border rounded-lg p-4" style="border-color: var(--card-border);"><h5 class="font-bold flex items-center mb-2" style="color: var(--error-color);">خطأ في عرض المحتوى</h5><div class="p-3 rounded-lg text-sm" style="background-color: var(--bg-color); color: var(--error-color);">فشل في عرض محتوى الملف</div></div></div>';
                     }
                 },
-
                 updateData(fileIndex, path, value) {
                     try {
                         const keys = path.split('.');
                         let current = TranslatorApp.state.translatedJsonData[fileIndex].data;
-                        let original = TranslatorApp.state.originalJsonData[fileIndex].data;
+                        const original = TranslatorApp.state.originalJsonData[fileIndex].data; // Keep original for reference
                         for (let i = 0; i < keys.length - 1; i++) {
                             current = current[keys[i]];
-                            original = original[keys[i]]; // Traverse the original data in parallel
                         }
                         const lastKey = keys[keys.length - 1];
-
-                        const originalValueAtPath = original[lastKey];
-                        if (Array.isArray(originalValueAtPath)) {
-                            current[lastKey] = [value];
+                
+                        // Correctly handle the case for gap_text_keys
+                        if (keys[keys.length - 2] === 'gap_text_keys') {
+                            const keyIndex = parseInt(keys[keys.length - 1], 10);
+                            if (current.gap_text_keys && current.gap_text_keys[keyIndex]) {
+                                current.gap_text_keys[keyIndex].value = value;
+                            }
                         } else {
-                            // Otherwise, store it as a string
+                            // Otherwise, set the value directly
                             current[lastKey] = value;
                         }
+                
                         TranslatorApp.history.push(TranslatorApp.state.translatedJsonData);
                         TranslatorApp.state.hasUnsavedChanges = true;
                     } catch (error) {
