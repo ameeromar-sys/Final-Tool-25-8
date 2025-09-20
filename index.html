@@ -2093,17 +2093,6 @@
             },
 
             quality: {
-                wantsArabicIndicDigits(subject, grade) {
-                    if (subject === 'Mathematics' && ['Grades 1–3', 'Grades 8–12'].includes(grade)) return true;
-                    if (subject === 'Science' && grade === 'Grade 9') return true;
-                    return false;
-                },
-                cleanLatexArabic(text) {
-                    if (typeof text !== 'string') return text;
-                    // This is a simple but effective fix for the specific issue
-                    return text.replace(/\\alt{\\alef}\\prime/g, '')
-                               .replace(/\\lam/g, 'والباقي ');
-                },
                 unitsMap: {
                     'pounds': 'جنيه',
                     'pound': 'جنيه',
@@ -2120,6 +2109,18 @@
                     'min': 'د',
                     'h': 'س'
                 },
+                wantsArabicIndicDigits(subject, grade) {
+                    if (subject === 'Mathematics' && ['Grades 1–3', 'Grades 8–12'].includes(grade)) return true;
+                    if (subject === 'Science' && grade === 'Grade 9') return true;
+                    return false;
+                },
+                cleanLatexArabic(text) {
+                    if (typeof text !== 'string') return text;
+                    // This is a simple but effective fix for the specific issue
+                    return text.replace(/\\alt{\\alef}\\prime/g, '')
+                               .replace(/\\lam/g, 'والباقي ');
+                },
+                
                 protectSegments(text) {
                     const placeholders = {};
                     let idx = 0;
@@ -3964,7 +3965,7 @@
                     const fieldId = `field-${fileIndex}-${path.replace(/\./g, '-')}`;
                     const statusId = `status-${fieldId}`;
                 
-                    // Use a translation map for the unit
+                    // Get the translated unit from the new map
                     const translatedUnitText = TranslatorApp.quality.unitsMap[originalUnit.toLowerCase()] || originalUnit;
                 
                     return `
@@ -4002,7 +4003,7 @@
                             </div>
                         </div>
                     `;
-                }
+                },
                         
                 renderReadOnlyLTRField(label, value) {
                     if (value === undefined || value === null) return '';
@@ -4073,49 +4074,6 @@
                                 return '';
                             }
                         };
-                        renderInputField = (label, originalValue, translatedValue, originalUnit, translatedUnit, path, fileIndex) => {
-                            if (originalValue === undefined || originalValue === null) return '';
-                        
-                            const fieldId = `field-${fileIndex}-${path.replace(/\./g, '-')}`;
-                            const statusId = `status-${fieldId}`;
-                        
-                            const translatedUnitText = TranslatorApp.quality.unitsMap[originalUnit.toLowerCase()] || originalUnit;
-                        
-                            return `
-                                <div class="border rounded-lg p-4" style="border-color: var(--card-border);">
-                                    <div class="flex justify-between items-center mb-2">
-                                        <h5 class="font-bold flex items-center">${TranslatorApp.security.sanitize(label)} <span id="${statusId}" class="status-dot status-translated" title="تمت الترجمة"></span></h5>
-                                        <div class="flex gap-2">
-                                            <button class="text-xs font-semibold py-1 px-2 rounded" onclick="TranslatorApp.preview.copyOriginalText(this)">نسخ الأصلي</button>
-                                            <button class="text-xs font-semibold py-1 px-2 rounded" onclick="document.getElementById('diff-field-${fileIndex}-${path.replace(/\./g, '-')}').parentNode.classList.toggle('hidden')">عرض/إخفاء الفروقات</button>
-                                        </div>
-                                    </div>
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <p class="text-sm font-semibold mb-1" style="color: var(--secondary-text);">الأصلي</p>
-                                            <div class="original-text-readonly p-3 rounded-lg text-sm h-full flex items-center justify-end" style="background-color: var(--bg-color); color: var(--secondary-text); overflow:auto;">
-                                                <span dir="ltr">${TranslatorApp.security.sanitize(originalValue)}</span>
-                                                <span dir="ltr" class="mr-2">${TranslatorApp.security.sanitize(originalUnit)}</span>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <p class="text-sm font-semibold mb-1" style="color: var(--success-color);">المترجم (قابل للتعديل)</p>
-                                            <div id="${fieldId}" 
-                                                class="editable-preview-field flex items-center justify-end"
-                                                data-path="${path}"
-                                                data-file-index="${fileIndex}">
-                                                <span contenteditable="true" dir="ltr" class="flex-grow text-right">${TranslatorApp.security.sanitize(translatedValue)}</span>
-                                                <span contenteditable="true" dir="rtl" class="flex-shrink-0 mr-2 editable-unit">${TranslatorApp.security.sanitize(translatedUnitText)}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="mt-4 hidden">
-                                        <p class="text-sm font-semibold mb-1" style="color: var(--secondary-text);">مقارنة الفروقات</p>
-                                        <div id="diff-field-${fileIndex}-${path.replace(/\./g, '-')}" class="diff-view"></div>
-                                    </div>
-                                </div>
-                            `;
-                        };
                 
                         html += renderField('البيان (Statement)', TranslatorApp.state.originalJsonData[fileIndex].data.statement, data.statement, 'statement');
                 
@@ -4134,8 +4092,8 @@
                                         const originalValue = originalPart.answer.value;
                                         const originalUnit = originalPart.answer.unit || '';
                                         const translatedValue = part.answer.value;
-                                        const translatedUnit = part.answer.unit || ''; // Assuming the unit is kept the same for now, but will be editable
-                                        html += renderInputField('الإجابة (Answer)', originalValue, translatedValue, originalUnit, translatedUnit, `parts.${partIndex}.answer`, fileIndex);
+                                        const translatedUnit = part.answer.unit || '';
+                                        html += this.renderInputField('الإجابة (Answer)', originalValue, translatedValue, originalUnit, translatedUnit, `parts.${partIndex}.answer.value`, fileIndex);
                                     } else if (Array.isArray(originalPart.answer)) {
                                         html += renderField('الإجابة (Answer)', originalPart.answer, part.answer, `parts.${partIndex}.answer`);
                                     } else if (typeof originalPart.answer === 'string') {
