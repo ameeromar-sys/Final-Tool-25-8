@@ -2965,8 +2965,9 @@
             // استبدال الدالة بالكامل بالنسخة الجديدة (تحليل HTML وتوليد مهام لعُقد النص)
             async startTranslationProcess() {
                 const apiProvider = document.querySelector('input[name="apiProvider"]:checked').value;
-                let apiKeyOrUrl; let localModelName;
-
+                let apiKeyOrUrl;
+                let localModelName;
+            
                 try {
                     if (apiProvider === 'gemini') {
                         apiKeyOrUrl = this.dom.geminiKeyInput.value.trim();
@@ -2988,73 +2989,77 @@
                     } else {
                         return this.ui.showAlert('يرجى اختيار مزود خدمة صالح.', 'error');
                     }
-
+            
                     if (this.state.selectedFilesInfo.length === 0) {
                         return this.ui.showAlert('اختر ملف JSON واحد على الأقل.', 'error');
                     }
                 } catch (validationError) {
                     return this.ui.showAlert('خطأ في التحقق من صحة البيانات المدخلة.', 'error');
                 }
-
+            
                 this.ui.showScreen('progress');
                 this.dom.translateBtn.disabled = true;
                 this.state.translationCache.clear();
                 this.state.startTime = Date.now();
                 this.api.createAbortController();
                 this.state.isTranslating = true;
-
+            
                 try {
                     this.ui.updateProgress('جاري قراءة الملفات...');
                     await this.fileHandler.readFilesFromInput();
                     this.state.translatedJsonData = JSON.parse(JSON.stringify(this.state.originalJsonData));
-
+            
                     const allJobs = [];
                     const parsedDataMap = new Map();
-
+            
+                    const processField = (htmlString, basePointer) => {
+                        if (!htmlString || typeof htmlString !== 'string') return;
+                        const { jobs, parsedBody } = this.utils.parseHtmlAndCreateJobs(htmlString, basePointer);
+                        allJobs.push(...jobs);
+                        const mapKey = JSON.stringify(basePointer);
+                        parsedDataMap.set(mapKey, parsedBody);
+                    };
+                    
                     this.ui.updateProgress('جاري تحليل المحتوى وتجهيز النصوص...');
-
+            
                     this.state.originalJsonData.forEach((file, fileIndex) => {
-                        const processField = (htmlString, basePointer) => {
-                            if (!htmlString || typeof htmlString !== 'string') return;
-
-                            const { jobs, parsedBody } = this.utils.parseHtmlAndCreateJobs(htmlString, basePointer);
-                            allJobs.push(...jobs);
-
-                            const mapKey = JSON.stringify(basePointer);
-                            parsedDataMap.set(mapKey, parsedBody);
-                        };
-
-                        // معالجة البيان الرئيسي
+                        // Process statement field
                         processField(file.data.statement, { fileIndex, key: 'statement' });
-
-                        // معالجة أجزاء السؤال
+                        
+                        // Process parts
                         file.data.parts?.forEach((part, partIndex) => {
+                            const originalPart = TranslatorApp.state.originalJsonData[fileIndex].data.parts[partIndex];
+                            
+                            // Process stem field
                             processField(part.stem, { fileIndex, partIndex, key: 'stem' });
-                            if (part.answer) {
-                                if (Array.isArray(part.answer)) {
-                                    part.answer.forEach((answerItem, answerIndex) => {
+            
+                            // Process answer field
+                            if (originalPart.answer) {
+                                if (Array.isArray(originalPart.answer)) {
+                                    originalPart.answer.forEach((answerItem, answerIndex) => {
                                         processField(answerItem, { fileIndex, partIndex, answerIndex, key: 'answer' });
                                     });
-                                } else if (typeof part.answer === 'string') {
-                                    processField(part.answer, { fileIndex, partIndex, key: 'answer' });
-                                } else if (typeof part.answer === 'object' && part.answer.hasOwnProperty('value')) {
-                                    processField(part.answer.value, { fileIndex, partIndex, key: 'answer', subKey: 'value' });
+                                } else if (typeof originalPart.answer === 'string') {
+                                    processField(originalPart.answer, { fileIndex, partIndex, key: 'answer' });
+                                } else if (typeof originalPart.answer === 'object' && originalPart.answer.hasOwnProperty('value')) {
+                                    processField(originalPart.answer.value, { fileIndex, partIndex, key: 'answer', subKey: 'value' });
                                 }
                             }
                             
-                            part.choices?.forEach((choice, choiceIndex) => {
+                            // Process choices
+                            originalPart.choices?.forEach((choice, choiceIndex) => {
                                 processField(choice.html_content, { fileIndex, partIndex, choiceIndex, key: 'choice' });
                             });
                             
-                            // This is the key part for gap_text_keys.
-                            if (part.gap_text_keys) {
-                                part.gap_text_keys.forEach((keyItem, keyIndex) => {
+                            // Process gap_text_keys
+                            if (originalPart.gap_text_keys) {
+                                originalPart.gap_text_keys.forEach((keyItem, keyIndex) => {
                                     processField(keyItem.value, { fileIndex, partIndex, key: 'gap_text_keys', keyIndex: keyIndex, subKey: 'value' });
                                 });
                             }
                         });
                     });
-
+                    
                     const uniqueJobs = [];
                     const seen = new Set();
                     for (const job of allJobs) {
@@ -3063,55 +3068,42 @@
                             uniqueJobs.push(job);
                         }
                     }
-
+                    
                     this.ui.updateProgress('جاري جلب المصطلحات المعتمدة...');
                     const allTextsForGlossary = uniqueJobs.map(j => j.originalText);
-                    // We fetch the glossary terms based on the selected subject and all unique texts
                     await this.remoteGlossary.fetchApproved(this.state.selectedSubject, allTextsForGlossary);
-
+            
                     uniqueJobs.forEach(job => {
-                        // applyWithPlaceholders returns the modified text and a map of placeholders to their translations
                         const { modifiedText, placeholders } = this.remoteGlossary.applyWithPlaceholders(job.originalText);
-
-                        // We need to keep track of the REAL original text to use as a key later
                         job.realOriginalText = job.originalText;
-
-                        // The text to be translated is now the one with placeholders
                         job.originalText = modifiedText;
-
-                        // We store the placeholders map on the job object itself to use it after translation
                         job.placeholders = placeholders;
                     });
-
+            
                     if (uniqueJobs.length > 0) {
                         this.ui.updateProgress(`جاري ترجمة ${uniqueJobs.length} نص فريد...`);
                         const systemPrompt = this.subjects.buildSystemPrompt();
                         await this.api.translateInChunks(uniqueJobs, apiKeyOrUrl, apiProvider, localModelName, systemPrompt);
                     }
-
+            
                     this.ui.updateProgress('جاري إعادة بناء المحتوى المترجم...');
-
-                    // تحديث عقد النص مباشرة
+            
                     allJobs.forEach(job => {
                         const cacheKey = job.realOriginalText || job.originalText;
                         let translatedText = this.state.translationCache.get(cacheKey);
                         if (translatedText && job.domNode) {
-                            // Apply the new cleaning function here before using the translated text
                             translatedText = this.quality.cleanLatexArabic(translatedText);
                             job.domNode.nodeValue = translatedText;
                         }
                     });
-
-                    // إعادة بناء JSON النهائي من هياكل HTML المحدثة
+            
                     for (const [mapKey, parsedBody] of parsedDataMap.entries()) {
                         const pointer = JSON.parse(mapKey);
                         const finalHtml = parsedBody.innerHTML;
                         const cleanedHtml = TranslatorApp.quality.cleanLatexArabic(finalHtml);
-                    
                         const { fileIndex, partIndex, choiceIndex, key, keyIndex, subKey } = pointer;
                         let target = this.state.translatedJsonData[fileIndex].data;
-                        
-                        // Logic to navigate to the correct path in the JSON object
+            
                         if (key === 'statement') {
                             target.statement = cleanedHtml;
                         } else if (key === 'stem') {
@@ -3132,15 +3124,16 @@
                             }
                         }
                     }
-
+            
                     this.state.activeScreen = 'preview';
                     this.history.push(this.state.translatedJsonData);
                     this.session.save();
                     this.ui.showScreen('preview');
                     this.preview.render();
-                    const stats = this.statistics.calculate(); // تم إصلاح المسافات هنا
+                    const stats = this.statistics.calculate();
                     this.ui.renderStatistics(stats);
                     this.ui.showAlert('تمت الترجمة بنجاح', 'success');
+            
                 } catch (error) {
                     if (error?.name !== 'AbortError') {
                         console.error('Translation process failed:', error);
