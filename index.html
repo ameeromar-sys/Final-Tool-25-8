@@ -4073,17 +4073,14 @@
                                 return '';
                             }
                         };
-                        const renderInputField = (label, originalValue, translatedValue, originalUnit, translatedUnit, path, fileIndex) => {
+                        renderInputField = (label, originalValue, translatedValue, originalUnit, translatedUnit, path, fileIndex) => {
                             if (originalValue === undefined || originalValue === null) return '';
-                            
+                        
                             const fieldId = `field-${fileIndex}-${path.replace(/\./g, '-')}`;
                             const statusId = `status-${fieldId}`;
-                
-                            const originalTextDir = 'ltr';
-                            const translatedTextDir = 'rtl';
-                            const originalUnitDir = 'ltr';
-                            const translatedUnitDir = 'rtl';
-                            
+                        
+                            const translatedUnitText = TranslatorApp.quality.unitsMap[originalUnit.toLowerCase()] || originalUnit;
+                        
                             return `
                                 <div class="border rounded-lg p-4" style="border-color: var(--card-border);">
                                     <div class="flex justify-between items-center mb-2">
@@ -4096,21 +4093,19 @@
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
                                             <p class="text-sm font-semibold mb-1" style="color: var(--secondary-text);">الأصلي</p>
-                                            <div class="original-text-readonly p-3 rounded-lg text-sm h-full flex" style="background-color: var(--bg-color); color: var(--secondary-text); overflow:auto;">
-                                                <span dir="${originalTextDir}" class="flex-grow">${TranslatorApp.security.sanitize(originalValue)}</span>
-                                                <span dir="${originalUnitDir}" class="flex-shrink-0 mr-2">${TranslatorApp.security.sanitize(originalUnit)}</span>
+                                            <div class="original-text-readonly p-3 rounded-lg text-sm h-full flex items-center justify-end" style="background-color: var(--bg-color); color: var(--secondary-text); overflow:auto;">
+                                                <span dir="ltr">${TranslatorApp.security.sanitize(originalValue)}</span>
+                                                <span dir="ltr" class="mr-2">${TranslatorApp.security.sanitize(originalUnit)}</span>
                                             </div>
                                         </div>
                                         <div>
                                             <p class="text-sm font-semibold mb-1" style="color: var(--success-color);">المترجم (قابل للتعديل)</p>
                                             <div id="${fieldId}" 
-                                                contenteditable="true"
-                                                class="editable-preview-field flex"
+                                                class="editable-preview-field flex items-center justify-end"
                                                 data-path="${path}"
-                                                data-file-index="${fileIndex}"
-                                                dir="rtl">
-                                                <span dir="${translatedTextDir}" class="flex-grow">${this.renderContentWithMath(translatedValue)}</span>
-                                                <span dir="${translatedUnitDir}" contenteditable="true" class="flex-shrink-0 mr-2 editable-unit">${TranslatorApp.security.sanitize(translatedUnit)}</span>
+                                                data-file-index="${fileIndex}">
+                                                <span contenteditable="true" dir="ltr" class="flex-grow text-right">${TranslatorApp.security.sanitize(translatedValue)}</span>
+                                                <span contenteditable="true" dir="rtl" class="flex-shrink-0 mr-2 editable-unit">${TranslatorApp.security.sanitize(translatedUnitText)}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -4140,7 +4135,7 @@
                                         const originalUnit = originalPart.answer.unit || '';
                                         const translatedValue = part.answer.value;
                                         const translatedUnit = part.answer.unit || ''; // Assuming the unit is kept the same for now, but will be editable
-                                        html += renderInputField('الإجابة (Answer)', originalValue, translatedValue, originalUnit, translatedUnit, `parts.${partIndex}.answer.value`, fileIndex);
+                                        html += renderInputField('الإجابة (Answer)', originalValue, translatedValue, originalUnit, translatedUnit, `parts.${partIndex}.answer`, fileIndex);
                                     } else if (Array.isArray(originalPart.answer)) {
                                         html += renderField('الإجابة (Answer)', originalPart.answer, part.answer, `parts.${partIndex}.answer`);
                                     } else if (typeof originalPart.answer === 'string') {
