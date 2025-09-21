@@ -4430,6 +4430,7 @@
                 exportAs(format) {
                     return (format === 'csv') ? this.toCsv() : this.toJson();
                 },
+
                 async toJson() {
                     const useMappedIds = TranslatorApp.dom.useMappedIdsCheckbox.checked;
                     let mappedIds = [];
@@ -4450,11 +4451,10 @@
                     const zip = new JSZip();
                 
                     TranslatorApp.state.translatedJsonData.forEach(file => {
-                        // Use the translated data as the basis for the final export
+                        // Use the translated data directly as the basis for the final export
                         const finalData = JSON.parse(JSON.stringify(file.data));
-                        const originalFile = TranslatorApp.state.originalJsonData.find(f => f.name === file.name);
                 
-                        // Update metadata as before
+                        // Update metadata
                         finalData.metadata = finalData.metadata || {};
                         finalData.metadata.title = "";
                         finalData.metadata.language = 'ar';
@@ -4490,7 +4490,7 @@
                         } else {
                             finalData.metadata.mapped_id = finalData.metadata.id;
                         }
-                
+                        
                         zip.file(fileNameToUse, JSON.stringify(finalData, null, 2));
                     });
                 
@@ -4512,7 +4512,7 @@
                         console.error('ZIP creation error:', e);
                         TranslatorApp.ui.showAlert(`فشل إنشاء ملف ZIP: ${e.message}`, 'error');
                     }
-                },
+                }
                 async toCsv() {
                     let csv = '\uFEFFFileName,PartIndex,Type,OriginalText,TranslatedText\r\n';
                     TranslatorApp.state.originalJsonData.forEach((originalFile, fileIndex) => {
