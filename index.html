@@ -3787,28 +3787,25 @@
                             return;
                         }
                 
-                        const keys = path.split('.');
-                        // The path points to the value, so we need to target the parent object to update the unit
+                        const pathParts = path.split('.');
+                        const parentPath = pathParts.slice(0, pathParts.length - 1);
                         let targetObject = TranslatorApp.state.translatedJsonData[fileIndex].data;
-                        for (let i = 0; i < keys.length - 1; i++) {
-                            targetObject = targetObject[keys[i]];
+                        for (const key of parentPath) {
+                            targetObject = targetObject[key];
                         }
-                        
-                        // This is a more robust way to get the original unit path
-                        let originalUnitPath = [...keys.slice(0, keys.length - 1), 'unit'].join('.');
                 
-                        if (targetObject) {
+                        if (targetObject && typeof targetObject === 'object' && targetObject.hasOwnProperty('unit')) {
                             targetObject.unit = newUnitValue;
                         }
-                
-                        this.updateDiff(fileIndex, originalUnitPath, newUnitValue);
+                        
+                        this.updateDiff(fileIndex, path, newUnitValue);
                 
                         const statusEl = document.getElementById(`status-field-${fileIndex}-${path.replace(/\./g, '-')}`);
                         if (statusEl) {
                             statusEl.className = 'status-dot status-edited';
                             statusEl.title = 'تم التعديل يدوياً';
                         }
-                
+                        
                         TranslatorApp.history.push(TranslatorApp.state.translatedJsonData);
                         TranslatorApp.state.hasUnsavedChanges = true;
                     } catch (error) {
