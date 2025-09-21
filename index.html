@@ -4482,6 +4482,43 @@
                         let description = (cleanStatement + ' ' + cleanStem).trim();
                         finalData.metadata.description = description;
                 
+                        if (finalData.parts) {
+                            finalData.parts.forEach((part, partIndex) => {
+                                const translatedPart = file.data.parts[partIndex];
+                                const originalPart = originalFile.data.parts[partIndex];
+                                if (translatedPart) {
+                                    part.stem = translatedPart.stem;
+                                    
+                                    if (part.type === 'input_box' && originalPart.answer && originalPart.answer.hasOwnProperty('value')) {
+                                        // Update both the value and the unit from the translated part
+                                        part.answer.value = translatedPart.answer.value;
+                                        part.answer.unit = translatedPart.answer.unit;
+                                    } else if (Array.isArray(originalPart.answer)) {
+                                        part.answer = translatedPart.answer;
+                                    } else if (typeof originalPart.answer === 'string') {
+                                        part.answer = translatedPart.answer;
+                                    } else if (typeof originalPart.answer === 'object' && originalPart.answer.hasOwnProperty('value')) {
+                                        part.answer.value = translatedPart.answer.value;
+                                    }
+                                    
+                                    if (part.choices) {
+                                        part.choices.forEach((choice, choiceIndex) => {
+                                            if (translatedPart.choices && translatedPart.choices[choiceIndex]) {
+                                                choice.html_content = translatedPart.choices[choiceIndex].html_content;
+                                            }
+                                        });
+                                    }
+                                    if (part.gap_text_keys) {
+                                        part.gap_text_keys.forEach((keyItem, keyIndex) => {
+                                            if (translatedPart.gap_text_keys && translatedPart.gap_text_keys[keyIndex]) {
+                                                keyItem.value = translatedPart.gap_text_keys[keyIndex].value;
+                                            }
+                                        });
+                                    }
+                                }
+                            });
+                        }
+                
                         let fileNameToUse = file.name;
                         if (useMappedIds && idCounter < mappedIds.length) {
                             const newMappedId = mappedIds[idCounter];
@@ -4491,7 +4528,7 @@
                         } else {
                             finalData.metadata.mapped_id = finalData.metadata.id;
                         }
-                        
+                
                         zip.file(fileNameToUse, JSON.stringify(finalData, null, 2));
                     });
                 
