@@ -4453,6 +4453,7 @@
                     TranslatorApp.state.translatedJsonData.forEach(file => {
                         // Use the translated data directly as the basis for the final export
                         const finalData = JSON.parse(JSON.stringify(file.data));
+                        const originalFile = TranslatorApp.state.originalJsonData.find(f => f.name === file.name);
                 
                         // Update metadata
                         finalData.metadata = finalData.metadata || {};
