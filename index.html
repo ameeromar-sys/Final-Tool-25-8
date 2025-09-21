@@ -4512,7 +4512,7 @@
                         console.error('ZIP creation error:', e);
                         TranslatorApp.ui.showAlert(`فشل إنشاء ملف ZIP: ${e.message}`, 'error');
                     }
-                }
+                },
                 async toCsv() {
                     let csv = '\uFEFFFileName,PartIndex,Type,OriginalText,TranslatedText\r\n';
                     TranslatorApp.state.originalJsonData.forEach((originalFile, fileIndex) => {
