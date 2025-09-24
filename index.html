@@ -4450,10 +4450,9 @@
                 
                     const zip = new JSZip();
                 
-                    TranslatorApp.state.translatedJsonData.forEach(file => {
+                    for (const translatedFile of TranslatorApp.state.translatedJsonData) {
                         // Use the translated data directly as the basis for the final export
-                        const finalData = JSON.parse(JSON.stringify(file.data));
-                        const originalFile = TranslatorApp.state.originalJsonData.find(f => f.name === file.name);
+                        const finalData = JSON.parse(JSON.stringify(translatedFile.data));
                 
                         // Update metadata
                         finalData.metadata = finalData.metadata || {};
@@ -4482,44 +4481,19 @@
                         let description = (cleanStatement + ' ' + cleanStem).trim();
                         finalData.metadata.description = description;
                 
+                        // Ensure the translated unit is correctly saved
                         if (finalData.parts) {
-                            finalData.parts.forEach((part, partIndex) => {
-                                const translatedPart = file.data.parts[partIndex];
-                                const originalPart = originalFile.data.parts[partIndex];
-                                if (translatedPart) {
-                                    part.stem = translatedPart.stem;
-                                    
-                                    if (part.type === 'input_box' && originalPart.answer && originalPart.answer.hasOwnProperty('value')) {
-                                        // Update both the value and the unit from the translated part
-                                        part.answer.value = translatedPart.answer.value;
-                                        part.answer.unit = translatedPart.answer.unit;
-                                    } else if (Array.isArray(originalPart.answer)) {
-                                        part.answer = translatedPart.answer;
-                                    } else if (typeof originalPart.answer === 'string') {
-                                        part.answer = translatedPart.answer;
-                                    } else if (typeof originalPart.answer === 'object' && originalPart.answer.hasOwnProperty('value')) {
-                                        part.answer.value = translatedPart.answer.value;
-                                    }
-                                    
-                                    if (part.choices) {
-                                        part.choices.forEach((choice, choiceIndex) => {
-                                            if (translatedPart.choices && translatedPart.choices[choiceIndex]) {
-                                                choice.html_content = translatedPart.choices[choiceIndex].html_content;
-                                            }
-                                        });
-                                    }
-                                    if (part.gap_text_keys) {
-                                        part.gap_text_keys.forEach((keyItem, keyIndex) => {
-                                            if (translatedPart.gap_text_keys && translatedPart.gap_text_keys[keyIndex]) {
-                                                keyItem.value = translatedPart.gap_text_keys[keyIndex].value;
-                                            }
-                                        });
-                                    }
+                            finalData.parts.forEach((part) => {
+                                if (part.type === 'input_box' && part.answer && part.answer.hasOwnProperty('value')) {
+                                    const originalUnit = TranslatorApp.state.originalJsonData
+                                        .find(f => f.name === translatedFile.name)?.data.parts
+                                        .find(p => p.n === part.n)?.answer.unit || '';
+                                    part.answer.unit = TranslatorApp.quality.unitsMap[originalUnit.toLowerCase()] || originalUnit;
                                 }
                             });
                         }
-                
-                        let fileNameToUse = file.name;
+                        
+                        let fileNameToUse = translatedFile.name;
                         if (useMappedIds && idCounter < mappedIds.length) {
                             const newMappedId = mappedIds[idCounter];
                             finalData.metadata.mapped_id = newMappedId;
@@ -4530,7 +4504,7 @@
                         }
                 
                         zip.file(fileNameToUse, JSON.stringify(finalData, null, 2));
-                    });
+                    }
                 
                     if (useMappedIds && idCounter < TranslatorApp.state.translatedJsonData.length) {
                         TranslatorApp.ui.showAlert(`تحذير: عدد المعرفات (${idCounter}) أقل من عدد الملفات (${TranslatorApp.state.translatedJsonData.length}).`, 'error');
