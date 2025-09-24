@@ -4019,6 +4019,15 @@
                 renderFileContent(data, fileIndex) {
                     try {
                         let html = '<div class="space-y-6">';
+
+                        const originalId = TranslatorApp.state.originalJsonData[fileIndex]?.data?.id;
+
+                        // Add a new line at the top of the preview to display the original ID
+                        if (originalId) {
+                            html += `<div class="p-4 bg-gray-100 rounded-lg shadow-inner mb-4" style="text-align: right; font-weight: bold; color: var(--text-color);">
+                                Original ID: <span dir="ltr" style="font-family: monospace;">${originalId}</span>
+                            </div>`;
+                        }
                 
                         const renderField = (label, originalValue, translatedValue, path, editableDir = 'rtl') => {
                             try {
