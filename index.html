@@ -3884,12 +3884,23 @@
                     try {
                         const { previewContainer } = TranslatorApp.dom;
                         previewContainer.innerHTML = '';
-
+                
+                        // Get the mapped IDs from the input field outside the loop
+                        let mappedIdsArray = [];
+                        try {
+                            if (TranslatorApp.dom.useMappedIdsCheckbox.checked && TranslatorApp.dom.mappedIdsInput.value.trim()) {
+                                mappedIdsArray = JSON.parse(TranslatorApp.dom.mappedIdsInput.value);
+                            }
+                        } catch (e) {
+                            console.error('Error parsing mapped IDs from input:', e);
+                            TranslatorApp.ui.showAlert('قائمة المعرفات (mapped_id) غير صالحة. يرجى التأكد من أنها مصفوفة JSON صحيحة.', 'error');
+                        }
+                
                         TranslatorApp.state.translatedJsonData.forEach((file, fileIndex) => {
                             try {
                                 const fileAccordion = document.createElement('div');
                                 fileAccordion.className = 'preview-card rounded-2xl shadow-lg overflow-hidden';
-
+                
                                 const header = document.createElement('button');
                                 header.className = 'accordion-header';
                                 header.innerHTML = `📄 ${TranslatorApp.security.sanitize(file.name)}`;
@@ -3908,15 +3919,17 @@
                                         console.warn('Accordion click error:', clickError);
                                     }
                                 };
-
+                                
+                                // Pass the current file's mappedId to the renderFileContent function
+                                const currentMappedId = mappedIdsArray[fileIndex] || null;
                                 const content = document.createElement('div');
                                 content.className = 'accordion-content';
-                                content.innerHTML = this.renderFileContent(file.data, fileIndex);
-
+                                content.innerHTML = this.renderFileContent(file.data, fileIndex, currentMappedId);
+                
                                 fileAccordion.appendChild(header);
                                 fileAccordion.appendChild(content);
                                 previewContainer.appendChild(fileAccordion);
-
+                
                                 this.generateInitialDiffs(fileIndex);
                             } catch (fileError) {
                                 console.warn('Error rendering file:', fileError);
@@ -3926,7 +3939,6 @@
                                 previewContainer.appendChild(errorDiv);
                             }
                         });
-                        // Activate MathLive keyboard for all math-fields in preview
                         this.prepareInteractiveMathFields();
                     } catch (error) {
                         console.error('Preview render error:', error);
@@ -3934,6 +3946,7 @@
                         previewContainer.innerHTML = '<div class="p-4" style="color: var (--error-color);">فشل في عرض المعاينة</div>';
                     }
                 },
+
 
                 renderReadOnlyField(label, originalValue, translatedValue) {
                     try {
@@ -4034,24 +4047,11 @@
                     </div>`;
                 },
 
-                renderFileContent(data, fileIndex) {
+                renderFileContent(data, fileIndex, mappedId) {
                     try {
                         let html = '<div class="space-y-6">';
-                        const originalId = TranslatorApp.state.originalJsonData[fileIndex]?.data?.id;
-                        let mappedId = null;
                 
-                        // Retrieve mapped IDs from the input field
-                        try {
-                            if (TranslatorApp.dom.useMappedIdsCheckbox.checked && TranslatorApp.dom.mappedIdsInput.value.trim()) {
-                                const mappedIdsArray = JSON.parse(TranslatorApp.dom.mappedIdsInput.value);
-                                if (Array.isArray(mappedIdsArray) && fileIndex < mappedIdsArray.length) {
-                                    mappedId = mappedIdsArray[fileIndex];
-                                }
-                            }
-                        } catch (e) {
-                            console.error('Error parsing mapped IDs from input:', e);
-                            mappedId = null; 
-                        }
+                        const originalId = TranslatorApp.state.originalJsonData[fileIndex]?.data?.id;
                 
                         // Display both original and mapped IDs with labels
                         if (originalId) {
@@ -4060,6 +4060,7 @@
                                     <span class="ml-2">original_id:</span> <span dir="ltr" style="font-family: monospace;">${originalId}</span>
                                 </div>`;
                             
+                            // Show mapped_id if it exists
                             if (mappedId) {
                                 html += `
                                 <div class="flex items-center text-sm font-semibold" style="color: var(--text-color);">
