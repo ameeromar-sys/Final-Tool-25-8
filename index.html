@@ -4019,15 +4019,19 @@
                 renderFileContent(data, fileIndex) {
                     try {
                         let html = '<div class="space-y-6">';
-                        
+                
                         const originalId = TranslatorApp.state.originalJsonData[fileIndex]?.data?.id;
                         let mappedId = null;
                 
                         // Retrieve mapped IDs from the input field
                         try {
-                            const mappedIds = JSON.parse(TranslatorApp.dom.mappedIdsInput.value);
-                            if (Array.isArray(mappedIds) && fileIndex < mappedIds.length) {
-                                mappedId = mappedIds[fileIndex];
+                            // First, check if the "useMappedIds" checkbox is checked and the textarea has content.
+                            if (TranslatorApp.dom.useMappedIdsCheckbox.checked && TranslatorApp.dom.mappedIdsInput.value.trim()) {
+                                const mappedIdsArray = JSON.parse(TranslatorApp.dom.mappedIdsInput.value);
+                                // Ensure the parsed content is an array and the current file index exists.
+                                if (Array.isArray(mappedIdsArray) && fileIndex < mappedIdsArray.length) {
+                                    mappedId = mappedIdsArray[fileIndex];
+                                }
                             }
                         } catch (e) {
                             console.error('Error parsing mapped IDs from input:', e);
@@ -4040,7 +4044,8 @@
                             html += `<div class="p-4 bg-gray-100 rounded-lg shadow-inner mb-4 flex items-center justify-between">
                                 <div class="flex items-center text-sm font-semibold" style="color: var(--text-color);">
                                     <span class="ml-2">original_id:</span> <span dir="ltr" style="font-family: monospace;">${originalId}</span>
-                                </div>`;
+                                </div>
+                                `;
                             
                             // Show mapped_id if it exists
                             if (mappedId) {
