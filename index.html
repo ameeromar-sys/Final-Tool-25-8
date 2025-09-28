@@ -4454,7 +4454,7 @@
                     const useMappedIds = TranslatorApp.dom.useMappedIdsCheckbox.checked;
                     let mappedIds = [];
                     let idCounter = 0;
-                
+                    
                     if (useMappedIds) {
                         try {
                             mappedIds = JSON.parse(TranslatorApp.dom.mappedIdsInput.value);
@@ -4463,23 +4463,22 @@
                             return TranslatorApp.ui.showAlert('قائمة المعرفات (mapped_id) غير صالحة. يرجى التأكد من أنها مصفوفة JSON صحيحة.', 'error');
                         }
                     }
-                
+                    
                     const selectedTranslator = TranslatorApp.state.selectedTranslator;
                     const sourceId = TranslatorApp.state.translators[selectedTranslator];
-                
+                    
                     const zip = new JSZip();
-                
+                    
                     for (const translatedFile of TranslatorApp.state.translatedJsonData) {
-                        // Use the translated data directly as the basis for the final export
                         const finalData = JSON.parse(JSON.stringify(translatedFile.data));
-                
-                        // Update metadata
+                        const originalId = TranslatorApp.state.originalJsonData.find(f => f.name === translatedFile.name)?.data?.id;
+                    
                         finalData.metadata = finalData.metadata || {};
                         finalData.metadata.title = "";
                         finalData.metadata.language = 'ar';
                         finalData.metadata.dialect = ['modern_standard'];
                         finalData.metadata.country = 'eg';
-                
+                    
                         if (sourceId) {
                             finalData.metadata.source_id = {
                                 "value": parseInt(sourceId),
@@ -4488,19 +4487,18 @@
                         } else {
                             finalData.metadata.source_id = null;
                         }
-                
+                    
                         const stripHtml = (html) => {
                             if (!html) return "";
                             const doc = new DOMParser().parseFromString(html, 'text/html');
                             return doc.body.textContent || "";
                         };
-                
+                    
                         const cleanStatement = stripHtml(finalData.statement);
                         const cleanStem = finalData.parts?.[0]?.stem ? stripHtml(finalData.parts[0].stem) : '';
                         let description = (cleanStatement + ' ' + cleanStem).trim();
                         finalData.metadata.description = description;
-                
-                        // Ensure the translated unit is correctly saved
+                    
                         if (finalData.parts) {
                             finalData.parts.forEach((part) => {
                                 if (part.type === 'input_box' && part.answer && part.answer.hasOwnProperty('value')) {
@@ -4511,24 +4509,25 @@
                                 }
                             });
                         }
-                        
+                    
                         let fileNameToUse = translatedFile.name;
+                        // Assign the mapped ID for both export and display
                         if (useMappedIds && idCounter < mappedIds.length) {
                             const newMappedId = mappedIds[idCounter];
                             finalData.metadata.mapped_id = newMappedId;
                             fileNameToUse = `${newMappedId}.json`;
                             idCounter++;
                         } else {
-                            finalData.metadata.mapped_id = finalData.metadata.id;
+                            finalData.metadata.mapped_id = originalId; // Fallback to original ID for the mapped_id field
                         }
-                
+                    
                         zip.file(fileNameToUse, JSON.stringify(finalData, null, 2));
                     }
-                
+                    
                     if (useMappedIds && idCounter < TranslatorApp.state.translatedJsonData.length) {
                         TranslatorApp.ui.showAlert(`تحذير: عدد المعرفات (${idCounter}) أقل من عدد الملفات (${TranslatorApp.state.translatedJsonData.length}).`, 'error');
                     }
-                
+                    
                     try {
                         const content = await zip.generateAsync({ type: "blob" });
                         const link = document.createElement("a");
