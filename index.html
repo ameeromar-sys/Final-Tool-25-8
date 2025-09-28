@@ -4019,21 +4019,22 @@
                 renderFileContent(data, fileIndex) {
                     try {
                         let html = '<div class="space-y-6">';
-
+                
                         const originalId = TranslatorApp.state.originalJsonData[fileIndex]?.data?.id;
                         const mappedId = data?.metadata?.mapped_id;
-
-                        // Add a new line at the top of the preview to display the original ID
+                
+                        // Add a new line at the top of the preview to display both IDs
                         if (originalId) {
                             html += `<div class="p-4 bg-gray-100 rounded-lg shadow-inner mb-4 flex items-center justify-between">
                                 <div class="flex items-center text-sm font-semibold" style="color: var(--text-color);">
-                                    <span class="ml-2">Original ID:</span> <span dir="ltr" style="font-family: monospace;">${originalId}</span>
-                                </div>`;
-                            // Add the mapped ID if it exists and is different from the original ID
-                            if (mappedId && mappedId !== originalId) {
+                                    <span class="ml-2">original_id:</span> <span dir="ltr" style="font-family: monospace;">${originalId}</span>
+                                </div>
+                                `;
+                            // Always show mapped_id if it exists, even if it's the same as the original ID.
+                            if (mappedId) {
                                 html += `
                                 <div class="flex items-center text-sm font-semibold" style="color: var(--text-color);">
-                                    <span class="ml-2">Mapped ID:</span> <span dir="ltr" style="font-family: monospace;">${mappedId}</span>
+                                    <span class="ml-2">mapped_id:</span> <span dir="ltr" style="font-family: monospace;">${mappedId}</span>
                                 </div>`;
                             }
                             html += `</div>`;
