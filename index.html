@@ -4025,10 +4025,10 @@
                 
                         // Retrieve mapped IDs from the input field
                         try {
-                            // Check if the "useMappedIds" checkbox is checked AND the textarea has content
+                            // Check if the "useMappedIds" checkbox is checked and the textarea has content.
                             if (TranslatorApp.dom.useMappedIdsCheckbox.checked && TranslatorApp.dom.mappedIdsInput.value.trim()) {
                                 const mappedIdsArray = JSON.parse(TranslatorApp.dom.mappedIdsInput.value);
-                                // Ensure the parsed content is an array and the current file index exists
+                                // Ensure the parsed content is an array and the current file index exists.
                                 if (Array.isArray(mappedIdsArray) && fileIndex < mappedIdsArray.length) {
                                     mappedId = mappedIdsArray[fileIndex];
                                 }
@@ -4046,7 +4046,7 @@
                                     <span class="ml-2">original_id:</span> <span dir="ltr" style="font-family: monospace;">${originalId}</span>
                                 </div>`;
                             
-                            // Show mapped_id only if it was successfully retrieved
+                            // Show mapped_id if it exists
                             if (mappedId) {
                                 html += `
                                 <div class="flex items-center text-sm font-semibold" style="color: var(--text-color);">
