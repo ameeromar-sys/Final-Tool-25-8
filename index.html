@@ -4021,7 +4021,23 @@
                         let html = '<div class="space-y-6">';
                 
                         const originalId = TranslatorApp.state.originalJsonData[fileIndex]?.data?.id;
-                        const mappedId = data?.metadata?.mapped_id; // Retrieve mapped_id from the file's data
+                        let mappedId = null;
+                
+                        // Retrieve mapped IDs from the input field
+                        try {
+                            // Check if the "useMappedIds" checkbox is checked AND the textarea has content
+                            if (TranslatorApp.dom.useMappedIdsCheckbox.checked && TranslatorApp.dom.mappedIdsInput.value.trim()) {
+                                const mappedIdsArray = JSON.parse(TranslatorApp.dom.mappedIdsInput.value);
+                                // Ensure the parsed content is an array and the current file index exists
+                                if (Array.isArray(mappedIdsArray) && fileIndex < mappedIdsArray.length) {
+                                    mappedId = mappedIdsArray[fileIndex];
+                                }
+                            }
+                        } catch (e) {
+                            console.error('Error parsing mapped IDs from input:', e);
+                            // Fallback to null if parsing fails
+                            mappedId = null; 
+                        }
                 
                         // Display both original and mapped IDs with labels
                         if (originalId) {
@@ -4030,7 +4046,7 @@
                                     <span class="ml-2">original_id:</span> <span dir="ltr" style="font-family: monospace;">${originalId}</span>
                                 </div>`;
                             
-                            // Show mapped_id if it exists in the metadata
+                            // Show mapped_id only if it was successfully retrieved
                             if (mappedId) {
                                 html += `
                                 <div class="flex items-center text-sm font-semibold" style="color: var(--text-color);">
