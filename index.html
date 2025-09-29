@@ -3920,8 +3920,9 @@
                                     }
                                 };
                                 
-                                // Pass the current file's mappedId to the renderFileContent function
+                                // Get the current file's mappedId from the parsed array
                                 const currentMappedId = mappedIdsArray[fileIndex] || null;
+                                
                                 const content = document.createElement('div');
                                 content.className = 'accordion-content';
                                 content.innerHTML = this.renderFileContent(file.data, fileIndex, currentMappedId);
@@ -3935,7 +3936,7 @@
                                 console.warn('Error rendering file:', fileError);
                                 const errorDiv = document.createElement('div');
                                 errorDiv.className = 'preview-card rounded-2xl shadow-lg overflow-hidden';
-                                errorDiv.innerHTML = `<div class="p-4" style="color: var (--error-color);">خطأ في عرض الملف: ${file.name}</div>`;
+                                errorDiv.innerHTML = `<div class="p-4" style="color: var(--error-color);">خطأ في عرض الملف: ${file.name}</div>`;
                                 previewContainer.appendChild(errorDiv);
                             }
                         });
@@ -3943,10 +3944,9 @@
                     } catch (error) {
                         console.error('Preview render error:', error);
                         const { previewContainer } = TranslatorApp.dom;
-                        previewContainer.innerHTML = '<div class="p-4" style="color: var (--error-color);">فشل في عرض المعاينة</div>';
+                        previewContainer.innerHTML = '<div class="p-4" style="color: var(--error-color);">فشل في عرض المعاينة</div>';
                     }
                 },
-
 
                 renderReadOnlyField(label, originalValue, translatedValue) {
                     try {
