@@ -3903,7 +3903,27 @@
                 
                                 const header = document.createElement('button');
                                 header.className = 'accordion-header';
-                                header.innerHTML = `📄 ${TranslatorApp.security.sanitize(file.name)}`;
+                                
+                                // Retrieve the original ID and the mapped ID for the current file
+                                const originalId = TranslatorApp.state.originalJsonData[fileIndex]?.data?.id || 'لا يوجد ID';
+                                const currentMappedId = mappedIdsArray[fileIndex] || 'لا يوجد ID';
+                                
+                                // Construct the header HTML with both IDs and their labels
+                                header.innerHTML = `
+                                    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                                        <span>
+                                            <span style="font-weight: normal; font-size: 0.9em; color: var(--secondary-text);">Original ID:</span>
+                                            <span dir="ltr" style="font-family: monospace;">${originalId}</span>
+                                        </span>
+                                        ${currentMappedId !== 'لا يوجد ID' ? `
+                                        <span>
+                                            <span style="font-weight: normal; font-size: 0.9em; color: var(--secondary-text);">Mapped ID:</span>
+                                            <span dir="ltr" style="font-family: monospace;">${currentMappedId}</span>
+                                        </span>
+                                        ` : ''}
+                                    </div>
+                                `;
+                
                                 header.onclick = (e) => {
                                     try {
                                         const content = e.currentTarget.nextElementSibling;
@@ -3919,9 +3939,6 @@
                                         console.warn('Accordion click error:', clickError);
                                     }
                                 };
-                                
-                                // Get the current file's mappedId from the parsed array
-                                const currentMappedId = mappedIdsArray[fileIndex] || null;
                                 
                                 const content = document.createElement('div');
                                 content.className = 'accordion-content';
@@ -3947,7 +3964,6 @@
                         previewContainer.innerHTML = '<div class="p-4" style="color: var(--error-color);">فشل في عرض المعاينة</div>';
                     }
                 },
-
                 renderReadOnlyField(label, originalValue, translatedValue) {
                     try {
                         if (originalValue === undefined || originalValue === null) return '';
