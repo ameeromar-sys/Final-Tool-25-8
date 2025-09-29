@@ -3884,8 +3884,8 @@
                     try {
                         const { previewContainer } = TranslatorApp.dom;
                         previewContainer.innerHTML = '';
-                
-                        // Get the mapped IDs from the input field outside the loop
+                        
+                        // Get the mapped IDs from the input field once before the loop
                         let mappedIdsArray = [];
                         try {
                             if (TranslatorApp.dom.useMappedIdsCheckbox.checked && TranslatorApp.dom.mappedIdsInput.value.trim()) {
@@ -3904,39 +3904,51 @@
                                 const header = document.createElement('button');
                                 header.className = 'accordion-header';
                                 
-                                // Retrieve the original ID and the mapped ID for the current file
-                                const originalId = TranslatorApp.state.originalJsonData[fileIndex]?.data?.id || 'لا يوجد ID';
-                                const currentMappedId = mappedIdsArray[fileIndex] || 'لا يوجد ID';
-                                
+                                const originalId = TranslatorApp.state.originalJsonData[fileIndex]?.data?.id || file.name.replace('.json', '');
+                                const currentMappedId = mappedIdsArray[fileIndex] || null;
+                
                                 // Construct the header HTML with both IDs and their labels
+                                const headerHtml = `
+                                    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                                        <span style="font-weight: normal; font-size: 0.9em; color: var(--secondary-text);">Original ID:</span>
+                                        <span dir="ltr" style="font-family: monospace;">${originalId}</span>
+                                        ${currentMappedId ? `
+                                        <span style="font-weight: normal; font-size: 0.9em; color: var(--secondary-text);">Mapped ID:</span>
+                                        <span dir="ltr" style="font-family: monospace;">${currentMappedId}</span>
+                                        ` : ''}
+                                    </div>
+                                `;
+                
                                 header.innerHTML = `
                                     <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
-                                        <span>
+                                        <div style="display: flex; align-items: center;">
                                             <span style="font-weight: normal; font-size: 0.9em; color: var(--secondary-text);">Original ID:</span>
-                                            <span dir="ltr" style="font-family: monospace;">${originalId}</span>
-                                        </span>
-                                        ${currentMappedId !== 'لا يوجد ID' ? `
-                                        <span>
+                                            <span dir="ltr" style="font-family: monospace; margin-left: 8px;">${originalId}</span>
+                                        </div>
+                                        ${currentMappedId ? `
+                                        <div style="display: flex; align-items: center;">
                                             <span style="font-weight: normal; font-size: 0.9em; color: var(--secondary-text);">Mapped ID:</span>
-                                            <span dir="ltr" style="font-family: monospace;">${currentMappedId}</span>
-                                        </span>
+                                            <span dir="ltr" style="font-family: monospace; margin-left: 8px;">${currentMappedId}</span>
+                                        </div>
                                         ` : ''}
                                     </div>
                                 `;
                 
                                 header.onclick = (e) => {
-                                    try {
-                                        const content = e.currentTarget.nextElementSibling;
-                                        e.currentTarget.classList.toggle('active');
-                                        if (content.style.maxHeight) {
-                                            content.style.maxHeight = null;
-                                            content.classList.remove('open');
-                                        } else {
-                                            content.classList.add('open');
-                                            content.style.maxHeight = content.scrollHeight + "px";
-                                        }
-                                    } catch (clickError) {
-                                        console.warn('Accordion click error:', clickError);
+                                    const content = e.currentTarget.nextElementSibling;
+                                    const accordionParent = e.currentTarget.closest('.preview-card');
+                                    const isOpen = content.style.maxHeight && content.style.maxHeight !== '0px';
+                                    
+                                    if (isOpen) {
+                                        content.style.maxHeight = null;
+                                        accordionParent.style.boxShadow = null;
+                                        accordionParent.style.transform = null;
+                                        accordionParent.classList.remove('open');
+                                    } else {
+                                        content.style.maxHeight = content.scrollHeight + "px";
+                                        accordionParent.style.boxShadow = '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)';
+                                        accordionParent.style.transform = 'scale(1.01)';
+                                        accordionParent.classList.add('open');
                                     }
                                 };
                                 
