@@ -3113,12 +3113,17 @@
                             if (originalPart.answer) {
                                 if (Array.isArray(originalPart.answer)) {
                                     originalPart.answer.forEach((answerItem, answerIndex) => {
-                                        processField(answerItem, { fileIndex, partIndex, answerIndex, key: 'answer' });
+                                        processField(answerItem, { fileIndex, partIndex, answerIndex, key: 'answer', isArray: true });
                                     });
                                 } else if (typeof originalPart.answer === 'string') {
                                     processField(originalPart.answer, { fileIndex, partIndex, key: 'answer' });
                                 } else if (typeof originalPart.answer === 'object' && originalPart.answer.hasOwnProperty('value')) {
                                     processField(originalPart.answer.value, { fileIndex, partIndex, key: 'answer', subKey: 'value' });
+                                } else if (typeof originalPart.answer === 'object' && originalPart.answer.hasOwnProperty('key') && originalPart.answer.hasOwnProperty('value') && originalPart.answer.hasOwnProperty('unit')) {
+                                    // Special case for a more complex object answer type
+                                    processField(originalPart.answer.key, { fileIndex, partIndex, key: 'answer', subKey: 'key' });
+                                    processField(originalPart.answer.value, { fileIndex, partIndex, key: 'answer', subKey: 'value' });
+                                    processField(originalPart.answer.unit, { fileIndex, partIndex, key: 'answer', subKey: 'unit' });
                                 }
                             }
                             
@@ -3177,7 +3182,7 @@
                         const pointer = JSON.parse(mapKey);
                         const finalHtml = parsedBody.innerHTML;
                         const cleanedHtml = TranslatorApp.quality.cleanLatexArabic(finalHtml);
-                        const { fileIndex, partIndex, choiceIndex, key, keyIndex, subKey } = pointer;
+                        const { fileIndex, partIndex, choiceIndex, key, keyIndex, subKey, answerIndex, isArray } = pointer;
                         let target = this.state.translatedJsonData[fileIndex].data;
             
                         if (key === 'statement') {
@@ -3185,10 +3190,16 @@
                         } else if (key === 'stem') {
                             target.parts[partIndex].stem = cleanedHtml;
                         } else if (key === 'answer') {
-                            if (subKey === 'value') {
+                            if (isArray) { // Check if the original was an array
+                                if (target.parts?.[partIndex]?.answer && target.parts[partIndex].answer.length > answerIndex) {
+                                     target.parts[partIndex].answer[answerIndex] = cleanedHtml;
+                                }
+                            } else if (subKey === 'value') {
                                 target.parts[partIndex].answer.value = cleanedHtml;
-                            } else if (Array.isArray(target.parts[partIndex].answer)) {
-                                target.parts[partIndex].answer[answerIndex] = cleanedHtml;
+                            } else if (subKey === 'key') {
+                                 target.parts[partIndex].answer.key = cleanedHtml;
+                            } else if (subKey === 'unit') {
+                                 target.parts[partIndex].answer.unit = cleanedHtml;
                             } else {
                                 target.parts[partIndex].answer = cleanedHtml;
                             }
