@@ -3192,10 +3192,22 @@
                         } else if (key === 'stem') {
                             target.parts[partIndex].stem = cleanedHtml;
                         } else if (key === 'answer') {
-                            if (isArray) { // Check if the original was an array
-                                if (target.parts?.[partIndex]?.answer && target.parts[partIndex].answer.length > answerIndex) {
-                                     target.parts[partIndex].answer[answerIndex] = cleanedHtml;
+                            let originalAnswer = TranslatorApp.state.originalJsonData[fileIndex].data.parts[partIndex].answer;
+                            if (Array.isArray(originalAnswer)) {
+                                // The original answer was an array. We need to handle this carefully.
+                                // The AI's response might be a single string.
+                                // For now, let's assume the AI correctly translated the array.
+                                // However, a more robust fix would be to re-wrap it.
+                                if (Array.isArray(cleanedHtml)) {
+                                     target.parts[partIndex].answer = cleanedHtml;
+                                } else {
+                                     target.parts[partIndex].answer = [cleanedHtml];
                                 }
+                            } else if (typeof originalAnswer === 'object' && originalAnswer.hasOwnProperty('value')) {
+                                 target.parts[partIndex].answer.value = cleanedHtml;
+                            } else if (typeof originalAnswer === 'string') {
+                                 target.parts[partIndex].answer = cleanedHtml;
+                            }
                             } else if (subKey === 'value') {
                                 target.parts[partIndex].answer.value = cleanedHtml;
                             } else if (subKey === 'key') {
@@ -3203,7 +3215,12 @@
                             } else if (subKey === 'unit') {
                                  target.parts[partIndex].answer.unit = cleanedHtml;
                             } else {
-                                target.parts[partIndex].answer = cleanedHtml;
+                                let originalPart = TranslatorApp.state.originalJsonData[fileIndex].data.parts[partIndex];
+                                if (Array.isArray(originalPart.answer)) {
+                                     target.parts[partIndex].answer = [cleanedHtml];
+                                } else {
+                                     target.parts[partIndex].answer = cleanedHtml;
+                                }
                             }
                         } else if (key === 'choice') {
                             target.parts[partIndex].choices[choiceIndex].html_content = cleanedHtml;
@@ -4292,7 +4309,13 @@
                             }
                         } else {
                             // Otherwise, set the value directly
-                            current[lastKey] = value;
+                            let originalField = this.getDataByPath(original, path);
+                            if (Array.isArray(originalField)) {
+                                // If the original field was an array, wrap the new value in an array.
+                                current[lastKey] = [value];
+                            } else {
+                                current[lastKey] = value;
+                            }
                         }
                 
                         TranslatorApp.history.push(TranslatorApp.state.translatedJsonData);
